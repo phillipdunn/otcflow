@@ -1,13 +1,15 @@
 import cors from 'cors';
 import express from 'express';
-import { HealthResponseSchema } from '@otcflow/shared';
+import { dealsRouter } from './routes/deals.routes.js';
+import { healthRouter } from './routes/health.routes.js';
+import { errorMiddleware } from './middleware/error.middleware.js';
 
 const app = express();
 
 app.use(
   cors({
     origin: 'http://localhost:5173',
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
   })
 );
 app.use(express.json());
@@ -15,17 +17,14 @@ app.use(express.json());
 app.get('/', (_req, res) => {
   res.json({
     service: 'otcflow-api',
-    message: 'REST API — use GET /health for a readiness probe.',
+    message: 'REST API — use GET /health, GET /deals, POST /deals, …',
   });
 });
 
-app.get('/health', (_req, res) => {
-  const payload = HealthResponseSchema.parse({
-    status: 'ok',
-    service: 'otcflow-api',
-  });
-  res.json(payload);
-});
+app.use(healthRouter);
+app.use(dealsRouter);
+
+app.use(errorMiddleware);
 
 const port = Number(process.env.PORT) || 3000;
 

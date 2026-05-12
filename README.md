@@ -6,21 +6,21 @@ This README describes **what is in the repo today**. For **what each part means 
 
 ## What exists right now
 
-| Area                  | Implemented                                                                                                                                                                                                                                                                |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Monorepo**          | `apps/web`, `apps/api`, `packages/shared`; root scripts in `package.json`.                                                                                                                                                                                                 |
-| **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 1 OTC deal blotter** (mock data only): filterable/sortable table, counterparty search, row selection, detail side panel (Escape to close), toolbar state via React context. Lives under `apps/web/src/blotter/`. No API calls yet. |
-| **`apps/api`**        | Express on port 3000. **`GET /`** — service JSON. **`GET /health`** — Zod-validated body from `@otcflow/shared`. CORS for `http://localhost:5173`.                                                                                                                         |
-| **`packages/shared`** | **`Deal`** (`ProductType` multi-asset: rates, FX, credit, bond, equity; `Currency`; `DealStatus`; `createdAt`; `version`; …) via Zod; **`HealthResponseSchema`**. Builds to `dist/` on `npm install` (`prepare`).                                                          |
-| **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package.                                                                                                                                                                                                       |
+| Area                  | Implemented                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Monorepo**          | `apps/web`, `apps/api`, `packages/shared`; root scripts in `package.json`.                                                                                                                                                                                                                                                                                               |
+| **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 1 OTC deal blotter** (mock data only): filterable/sortable table, counterparty search, row selection, detail side panel (Escape to close), toolbar state via React context. Lives under `apps/web/src/blotter/`. No API calls yet.                                                                                               |
+| **`apps/api`**        | Express (default port **3000**). **Phase 2 REST deals API**: in-memory store with seed deals; **`GET /`**, **`GET /health`**, **`GET /deals`**, **`GET /deals/:id`**, **`POST /deals`**, **`PATCH /deals/:id/status`**. Zod validation on create and status update; shared **`Deal`** shape from `@otcflow/shared`. CORS for `http://localhost:5173` (includes `PATCH`). |
+| **`packages/shared`** | **`Deal`** (`ProductType`, `Currency`, `DealStatus`, timestamps, `version`, …) and **`DealsArraySchema`** for seed/mock lists; **`HealthResponseSchema`**. Builds to `dist/` on `npm install` (`prepare`).                                                                                                                                                               |
+| **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package.                                                                                                                                                                                                                                                                                                     |
 
 ## Repository layout
 
-| Path              | Role                                                                           |
-| ----------------- | ------------------------------------------------------------------------------ |
-| `apps/web`        | Browser UI (Vite dev server, default `:5173`). Blotter code in `src/blotter/`. |
-| `apps/api`        | HTTP API (Express, default `:3000`).                                           |
-| `packages/shared` | Shared Zod schemas and inferred types consumed by web (and API for health).    |
+| Path              | Role                                                                                                                                                              |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`        | Browser UI (Vite dev server, default `:5173`). Blotter code in `src/blotter/`.                                                                                    |
+| `apps/api`        | HTTP API (Express, default `:3000`). Source is split into `routes/`, `controllers/`, `services/`, `data/` (in-memory store + seed), `validation/`, `middleware/`. |
+| `packages/shared` | Shared Zod schemas and inferred types consumed by web and API (`Deal`, health, …).                                                                                |
 
 ### Web blotter (`apps/web/src/blotter/`)
 
@@ -93,13 +93,48 @@ npm run dev:web
 
 Open the URL Vite prints (usually `http://localhost:5173`). You should see the **deal blotter** with mock rows; filters, sort, row click, detail panel, and Escape-to-close work **without** the API.
 
-**API (optional — health smoke test)**
+**API (Phase 2 — deals REST + health)**
 
 ```bash
 npm run dev:api
 ```
 
-Expect: `OTCFlow API listening on http://localhost:3000`. Try `http://localhost:3000/` and `http://localhost:3000/health` in a browser or curl.
+Expect: `OTCFlow API listening on http://localhost:3000` (override with `PORT` if needed).
+
+| Method & path             | Purpose                                                                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /`                   | Short JSON describing the service and main routes.                                                                                                      |
+| `GET /health`             | Liveness; body validated with `HealthResponseSchema` from shared.                                                                                       |
+| `GET /deals`              | All deals (seed rows plus any created in this process).                                                                                                 |
+| `GET /deals/:id`          | One deal; **404** if missing.                                                                                                                           |
+| `POST /deals`             | Create a deal; server sets `id` (UUID), `createdAt`, `updatedAt`, `version` (starts at **1**). Optional body field `status`; defaults apply if omitted. |
+| `PATCH /deals/:id/status` | Set `status`; bumps `version` and updates `updatedAt`. **404** if missing.                                                                              |
+
+Example requests with **curl** (after `npm run dev:api`):
+
+```bash
+curl -s http://localhost:3000/health
+curl -s http://localhost:3000/deals
+curl -s http://localhost:3000/deals/api-seed-01
+```
+
+Create a deal (`product` must be a valid `ProductType` from shared, e.g. `IRS`; `currency` must match `CurrencySchema`):
+
+```bash
+curl -s -X POST http://localhost:3000/deals \
+  -H 'Content-Type: application/json' \
+  -d '{"product":"IRS","counterparty":"Acme Corp","notional":1000000,"currency":"USD","price":3.5,"trader":"A. Trader","broker":"B. Broker"}'
+```
+
+Update status (replace `<id>` with a real id from `GET /deals` or the POST response):
+
+```bash
+curl -s -X PATCH "http://localhost:3000/deals/<id>/status" \
+  -H 'Content-Type: application/json' \
+  -d '{"status":"BOOKED"}'
+```
+
+Invalid JSON bodies or Zod validation failures return **400** with error detail from the error middleware. The web blotter still uses mock data only; wiring it to this API is a later step.
 
 ## Build
 

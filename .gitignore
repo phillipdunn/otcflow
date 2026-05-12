@@ -16,3 +16,6 @@ apps/web/.vite/
 
 # Logs
 npm-debug.log*
+
+# Local phase completion notes (personal; not committed)
+docs/phases/
