@@ -1,0 +1,18 @@
+# Personal Cursor rules (not shared via the repo)
+.cursor/rules/project.md
+
+# Dependencies & build output
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+
+# Env (add when you introduce secrets)
+.env
+.env.*.local
+
+# Vite
+apps/web/.vite/
+
+# Logs
+npm-debug.log*
