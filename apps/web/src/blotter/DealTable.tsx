@@ -54,6 +54,12 @@ export function DealTable({ deals, selectedId, onSelect }: DealTableProps) {
             <th role="columnheader" scope="col">
               Broker
             </th>
+            <th role="columnheader" scope="col" className="num">
+              Ver
+            </th>
+            <th role="columnheader" scope="col">
+              Created
+            </th>
             <th role="columnheader" scope="col">
               Updated
             </th>
@@ -89,6 +95,12 @@ export function DealTable({ deals, selectedId, onSelect }: DealTableProps) {
               </td>
               <td role="cell">{deal.trader}</td>
               <td role="cell">{deal.broker}</td>
+              <td role="cell" className="num mono">
+                {deal.version}
+              </td>
+              <td role="cell" className="mono muted">
+                {formatDealUpdatedAtTable(deal.createdAt)}
+              </td>
               <td role="cell" className="mono muted">
                 {formatDealUpdatedAtTable(deal.updatedAt)}
               </td>

@@ -48,7 +48,7 @@ Replacing **`MOCK_DEALS`** with API + TanStack Query (or WebSocket snapshots) la
 
 ## How “shared contracts” map to OTC systems
 
-- **Today:** `DealSchema` models a blotter row; `HealthResponseSchema` models API readiness — both use the same **schema + `z.infer`** pattern you will reuse for RFQs, legs, and workflow payloads.
+- **Today:** `DealSchema` encodes **product** (rates: `IRS`, `OIS`; FX: `FX_OPTION`, `FX_SWAP`, `FX_NDF`; credit: `CDS`, `CDX`; cash: `BOND`; equity: `EQUITY_OPTION`, `EQUITY_SWAP`), **currency** (`GBP`, `USD`, `EUR`), **status** (`NEW`, `PENDING`, `MATCHED`, `CANCELLED`, `BOOKED`), **version**, and timestamps; `HealthResponseSchema` covers API readiness — same **schema + `z.infer`** pattern for richer payloads later.
 - **Tomorrow:** one definition for “RFQ created,” “quote revised,” “trade done,” consumed by the gateway and the desk UI — mirrors how serious trading APIs avoid duplicate DTOs and mismatched enums.
 
 ## Ticket / workflow lifecycle (conceptual)

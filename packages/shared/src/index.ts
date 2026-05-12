@@ -1,12 +1,18 @@
 import { z } from 'zod';
 
 export {
+  CURRENCY_VALUES,
+  CurrencySchema,
   DEAL_STATUS_VALUES,
   DealSchema,
   DealsArraySchema,
   DealStatusSchema,
+  PRODUCT_TYPE_VALUES,
+  ProductTypeSchema,
+  type Currency,
   type Deal,
   type DealStatus,
+  type ProductType,
 } from './deal.js';
 
 /** Minimal contract used by API + web to prove shared package wiring. */

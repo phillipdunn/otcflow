@@ -247,25 +247,25 @@
   border-radius: 0.2rem;
 }
 
-.blotter-status--pending {
-  background: #fef3c7;
-  color: #92400e;
-}
-.blotter-status--quoted {
+.blotter-status--NEW {
   background: #e0e7ff;
   color: #3730a3;
 }
-.blotter-status--live {
+.blotter-status--PENDING {
+  background: #fef3c7;
+  color: #92400e;
+}
+.blotter-status--MATCHED {
   background: #d1fae5;
   color: #065f46;
 }
-.blotter-status--done {
-  background: #e2e8f0;
-  color: #334155;
-}
-.blotter-status--cancelled {
+.blotter-status--CANCELLED {
   background: #fee2e2;
   color: #991b1b;
+}
+.blotter-status--BOOKED {
+  background: #e2e8f0;
+  color: #334155;
 }
 
 .blotter-empty {

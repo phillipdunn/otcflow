@@ -1,4 +1,4 @@
-import type { Deal } from '@otcflow/shared';
+import type { Deal, ProductType } from '@otcflow/shared';
 
 const notionalDisplayFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
@@ -13,6 +13,8 @@ const updatedAtDetailFormatter = new Intl.DateTimeFormat('en-GB', {
   dateStyle: 'medium',
   timeStyle: 'short',
 });
+
+const spreadQuotedProducts: ReadonlySet<ProductType> = new Set(['CDS', 'CDX']);
 
 export function formatDealNotional(notional: number): string {
   return notionalDisplayFormatter.format(notional);
@@ -29,8 +31,7 @@ export function formatDealUpdatedAtDetail(isoTimestamp: string): string {
 }
 
 export function formatDealPrice(deal: Deal): string {
-  if (deal.currency === 'JPY' && deal.price < 1) return deal.price.toFixed(4);
-  if (deal.product.includes('CDS') || deal.product.includes('CDX')) return deal.price.toFixed(2);
+  if (spreadQuotedProducts.has(deal.product)) return deal.price.toFixed(2);
   return deal.price.toFixed(4);
 }
 

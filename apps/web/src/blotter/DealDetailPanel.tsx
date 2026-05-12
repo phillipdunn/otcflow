@@ -69,6 +69,14 @@ export function DealDetailPanel({ deal, onClose }: DealDetailPanelProps) {
           <dd>{deal.broker}</dd>
         </div>
         <div className="blotter-detail__row">
+          <dt>Version</dt>
+          <dd className="mono">{deal.version}</dd>
+        </div>
+        <div className="blotter-detail__row">
+          <dt>Created</dt>
+          <dd className="mono">{formatDealUpdatedAtDetail(deal.createdAt)}</dd>
+        </div>
+        <div className="blotter-detail__row">
           <dt>Updated</dt>
           <dd className="mono">{formatDealUpdatedAtDetail(deal.updatedAt)}</dd>
         </div>
