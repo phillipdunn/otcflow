@@ -6,21 +6,37 @@ This README describes **what is in the repo today**. For **what each part means 
 
 ## What exists right now
 
-| Area                  | Implemented                                                                                                                                        |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Monorepo**          | `apps/web`, `apps/api`, `packages/shared`; root scripts in `package.json`.                                                                         |
-| **`apps/web`**        | React 18 + Vite 6 + TypeScript. Home page calls `GET /health` via `fetch`.                                                                         |
-| **`apps/api`**        | Express on port 3000. **`GET /`** — service JSON. **`GET /health`** — Zod-validated body from `@otcflow/shared`. CORS for `http://localhost:5173`. |
-| **`packages/shared`** | `HealthResponseSchema` / `HealthResponse`; builds to `dist/` on `npm install` (`prepare`).                                                         |
-| **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package.                                                                               |
+| Area                  | Implemented                                                                                                                                                                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Monorepo**          | `apps/web`, `apps/api`, `packages/shared`; root scripts in `package.json`.                                                                                                                                                                                                 |
+| **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 1 OTC deal blotter** (mock data only): filterable/sortable table, counterparty search, row selection, detail side panel (Escape to close), toolbar state via React context. Lives under `apps/web/src/blotter/`. No API calls yet. |
+| **`apps/api`**        | Express on port 3000. **`GET /`** — service JSON. **`GET /health`** — Zod-validated body from `@otcflow/shared`. CORS for `http://localhost:5173`.                                                                                                                         |
+| **`packages/shared`** | **`Deal`** / `DealSchema` / `DealStatus` / `DealsArraySchema` (blotter + future API); **`HealthResponseSchema`** (health endpoint). Builds to `dist/` on `npm install` (`prepare`).                                                                                        |
+| **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package.                                                                                                                                                                                                       |
 
 ## Repository layout
 
-| Path              | Role                                           |
-| ----------------- | ---------------------------------------------- |
-| `apps/web`        | Browser UI (Vite dev server, default `:5173`). |
-| `apps/api`        | HTTP API (Express, default `:3000`).           |
-| `packages/shared` | Shared Zod schemas and inferred types.         |
+| Path              | Role                                                                           |
+| ----------------- | ------------------------------------------------------------------------------ |
+| `apps/web`        | Browser UI (Vite dev server, default `:5173`). Blotter code in `src/blotter/`. |
+| `apps/api`        | HTTP API (Express, default `:3000`).                                           |
+| `packages/shared` | Shared Zod schemas and inferred types consumed by web (and API for health).    |
+
+### Web blotter (`apps/web/src/blotter/`)
+
+| File / area                  | Role                                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| `BlotterScreen.tsx`          | Composes hook, toolbar provider, table, conditional detail panel.                     |
+| `blotterToolbarContext.ts`   | Toolbar context value + `useBlotterToolbar` hook.                                     |
+| `BlotterToolbarProvider.tsx` | Context `Provider` (keeps Fast Refresh happy).                                        |
+| `useBlotterView.ts`          | Filters, sort, selection, derived `visibleDeals` / `selectedDeal` from the deal list. |
+| `mockDeals.ts`               | `MOCK_DEALS` validated with `DealsArraySchema.parse` at load time.                    |
+| `BlotterToolbar.tsx`         | Search + product/status filters + sort controls (reads context).                      |
+| `DealTable.tsx`              | Accessible table (`role`, `aria-selected`, keyboard row activation).                  |
+| `DealDetailPanel.tsx`        | Side panel for selected deal; Escape closes.                                          |
+| `formatDealDisplay.ts`       | Shared display formatting (notional, dates, price, status badge class).               |
+| `sortChevron.ts`             | Sort direction indicator for toolbar labels.                                          |
+| `blotter.css`                | Blotter layout and styling.                                                           |
 
 ## Why it is structured this way
 
@@ -32,11 +48,13 @@ This README describes **what is in the repo today**. For **what each part means 
 
 4. **`packages/shared` → `dist/`** — Compiled output + declarations; `prepare` runs `build` after install so dependents resolve real files.
 
-5. **Zod in shared** — `/health` response is parsed/validated with the same schema the frontend types use (`z.infer`).
+5. **Zod in shared** — Health and deal payloads share one pattern: runtime validation plus `z.infer` types for TypeScript.
 
 6. **Root ESLint + Prettier** — One config tree; React-specific lint only under `apps/web`.
 
 7. **CORS** — Allows the Vite origin to call the API in local development only.
+
+8. **Toolbar context** — Avoids a long prop list from screen → toolbar; value is `useMemo`’d so consumers do not re-render unnecessarily.
 
 **Not in this repo:** AWS, Docker, GraphQL, WebSockets, PostgreSQL, Prisma, TanStack Query (by design until you add them).
 
@@ -67,21 +85,21 @@ Prettier should report all files OK.
 
 ## Local development
 
-**API (terminal 1)**
-
-```bash
-npm run dev:api
-```
-
-Expect: `OTCFlow API listening on http://localhost:3000`.
-
-**Web (terminal 2)**
+**Web (primary for Phase 1 blotter)**
 
 ```bash
 npm run dev:web
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`). With the API running, the page shows the `/health` JSON; if the API is down, an error message is shown.
+Open the URL Vite prints (usually `http://localhost:5173`). You should see the **deal blotter** with mock rows; filters, sort, row click, detail panel, and Escape-to-close work **without** the API.
+
+**API (optional — health smoke test)**
+
+```bash
+npm run dev:api
+```
+
+Expect: `OTCFlow API listening on http://localhost:3000`. Try `http://localhost:3000/` and `http://localhost:3000/health` in a browser or curl.
 
 ## Build
 
@@ -102,4 +120,4 @@ Builds `@otcflow/shared`, then `@otcflow/web` (`tsc -b` + `vite build` → `apps
 | `npm run format`       | Prettier write       |
 | `npm run format:check` | Prettier check       |
 
-Optional: `VITE_API_URL` for the web app if the API is not at `http://localhost:3000`.
+When the web app calls the API again, you can point it with `VITE_API_URL` if the API is not at `http://localhost:3000`.

@@ -1,0 +1,362 @@
+/* OTCFlow blotter — restrained institutional palette */
+
+.blotter-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 0.875rem;
+}
+
+.blotter-header {
+  flex-shrink: 0;
+  padding: 1rem 1.25rem;
+  background: #0f172a;
+  color: #f8fafc;
+  border-bottom: 1px solid #1e293b;
+}
+
+.blotter-header__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.blotter-header__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.blotter-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem 1.5rem;
+  padding: 0.875rem 1.25rem;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.blotter-toolbar__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: flex-end;
+}
+
+.blotter-toolbar__group--search {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+}
+
+.blotter-toolbar__group--sort {
+  align-items: center;
+}
+
+.blotter-toolbar__meta {
+  margin-left: auto;
+  align-self: center;
+}
+
+.blotter-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.blotter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.blotter-field__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.blotter-field__label--inline {
+  margin-right: 0.5rem;
+}
+
+.blotter-input,
+.blotter-select {
+  font: inherit;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+  background: #fff;
+  color: #0f172a;
+  min-width: 0;
+}
+
+.blotter-input:focus,
+.blotter-select:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+  border-color: #2563eb;
+}
+
+.blotter-toolbar__group--search .blotter-input {
+  width: 100%;
+  max-width: 22rem;
+}
+
+.blotter-sort-buttons {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.blotter-sort-btn {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+}
+
+.blotter-sort-btn:hover {
+  background: #e2e8f0;
+}
+
+.blotter-sort-btn.is-active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.blotter-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.blotter-main {
+  flex: 1;
+  min-width: 0;
+  padding: 0.75rem 1rem 1rem;
+  overflow: auto;
+}
+
+.blotter-table-wrap {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  overflow: auto;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+}
+
+.blotter-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.blotter-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+  box-shadow: 0 1px 0 #e2e8f0;
+}
+
+.blotter-table th {
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.blotter-table th.num,
+.blotter-table td.num {
+  text-align: right;
+}
+
+.blotter-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.blotter-table tbody tr {
+  cursor: pointer;
+}
+
+.blotter-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.blotter-table tbody tr.is-selected {
+  background: #eff6ff;
+  outline: 1px solid #bfdbfe;
+  outline-offset: -1px;
+}
+
+.blotter-table tbody tr:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+.blotter-cell-product {
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono {
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: #64748b;
+}
+
+.blotter-status {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.2rem;
+}
+
+.blotter-status--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+.blotter-status--quoted {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+.blotter-status--live {
+  background: #d1fae5;
+  color: #065f46;
+}
+.blotter-status--done {
+  background: #e2e8f0;
+  color: #334155;
+}
+.blotter-status--cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.blotter-empty {
+  margin: 0;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+.blotter-detail {
+  flex: 0 0 20rem;
+  width: 20rem;
+  max-width: 100%;
+  background: #fff;
+  border-left: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.1rem;
+  overflow: auto;
+}
+
+.blotter-detail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.blotter-detail__title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.blotter-detail__close {
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+  background: #fff;
+  cursor: pointer;
+  color: #475569;
+}
+
+.blotter-detail__close:hover {
+  background: #f1f5f9;
+}
+
+.blotter-detail__dl {
+  margin: 0;
+}
+
+.blotter-detail__row {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.25rem 0.75rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.blotter-detail__row dt {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.blotter-detail__row dd {
+  margin: 0;
+  font-size: 0.8125rem;
+  word-break: break-word;
+  white-space: normal;
+}
+
+@media (max-width: 960px) {
+  .blotter-body {
+    flex-direction: column;
+  }
+
+  .blotter-detail {
+    flex: none;
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #e2e8f0;
+    max-height: 40vh;
+  }
+}

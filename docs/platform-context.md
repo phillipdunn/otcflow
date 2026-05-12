@@ -29,15 +29,26 @@ The **goal stack** (built incrementally; much of it not wired yet):
 
 | Path                  | What it represents on a real desk                                                                           | What it should grow into                                                                                                                                     |
 | --------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`apps/web`**        | **Dealing desk / client UI** — where front office see quotes, tickets, risk hints, and workflow state.           | Rich screens for RFQs, axes, negotiation, and ticket lifecycle; live updates via WebSockets or similar; server-state via TanStack Query when you add it.     |
+| **`apps/web`**        | **Dealing desk / client UI** — where front office see quotes, tickets, risk hints, and workflow state.      | Rich screens for RFQs, axes, negotiation, and ticket lifecycle; live updates via WebSockets or similar; server-state via TanStack Query when you add it.     |
 | **`apps/api`**        | **Gateway / orchestration** — the HTTP edge traders and internal tools hit first.                           | REST (and later optional GraphQL) for commands and queries; authn/authz; mapping to internal services; validation; rate limits; correlation IDs for support. |
 | **`packages/shared`** | **Wire contracts** — the law of the land for JSON payloads between UI and API (and later between services). | Zod (or equivalent) schemas for RFQs, legs, parties, statuses, and errors; inferred TypeScript types so UI and API cannot drift silently.                    |
 
 ---
 
+## Shipped slice vs full desk (Phase 1)
+
+The **blotter UI** in `apps/web` is a deliberate **thin vertical slice**: same mental model as a live desk (rows = tickets/deals, columns = economics and parties, filters = “what am I looking at?”), but backed by **mock deals** only. It proves:
+
+- **`Deal`** / **`DealStatus`** in **`packages/shared`** driving the UI types and mock validation.
+- Desk-style interaction patterns (search, filters, sort, drill-in) before you pay the cost of persistence and feeds.
+
+Replacing **`MOCK_DEALS`** with API + TanStack Query (or WebSocket snapshots) later should reuse the same **`useBlotterView`** shape: swap the source list, keep the presentation components.
+
+---
+
 ## How “shared contracts” map to OTC systems
 
-- **Today:** `HealthResponseSchema` is a stand-in — same pattern you will use for **agreed wire formats** for quotes, orders, and workflow events.
+- **Today:** `DealSchema` models a blotter row; `HealthResponseSchema` models API readiness — both use the same **schema + `z.infer`** pattern you will reuse for RFQs, legs, and workflow payloads.
 - **Tomorrow:** one definition for “RFQ created,” “quote revised,” “trade done,” consumed by the gateway and the desk UI — mirrors how serious trading APIs avoid duplicate DTOs and mismatched enums.
 
 ## Ticket / workflow lifecycle (conceptual)
