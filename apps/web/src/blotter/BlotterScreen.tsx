@@ -10,11 +10,14 @@ import { DealTable } from './DealTable.js';
 import { DealDetailPanel } from './DealDetailPanel.js';
 import { dealQueryKeys } from './queryKeys.js';
 import { useBlotterView } from './useBlotterView.js';
+import { useDealEventsWebSocket } from './useDealEventsWebSocket.js';
 import './blotter.css';
 
 export function BlotterScreen() {
   const queryClient = useQueryClient();
   const [showCreateForm, setShowCreateForm] = useState(false);
+
+  useDealEventsWebSocket();
 
   const dealsQuery = useQuery({
     queryKey: dealQueryKeys.all,
@@ -91,7 +94,7 @@ export function BlotterScreen() {
         <div className="blotter-header__row">
           <div>
             <h1 className="blotter-header__title">OTCFlow</h1>
-            <p className="blotter-header__subtitle">OTC deal blotter · live API (Phase 3)</p>
+            <p className="blotter-header__subtitle">OTC deal blotter · REST + realtime (Phase 4)</p>
           </div>
           <button
             type="button"

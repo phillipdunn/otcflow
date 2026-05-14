@@ -3,6 +3,7 @@ import type { Deal, DealStatus } from '@otcflow/shared';
 import { dealStore } from '../data/deal.store.js';
 import { HttpError } from '../middleware/error.middleware.js';
 import type { CreateDealBody } from '../validation/deal.validation.js';
+import { broadcastDealEvent } from '../ws/dealsWs.js';
 
 export function listDeals(): Deal[] {
   return dealStore.getAll();
@@ -34,6 +35,7 @@ export function createDeal(body: CreateDealBody): Deal {
     version: 1,
   };
   dealStore.insert(deal);
+  broadcastDealEvent({ type: 'DEAL_CREATED', deal });
   return deal;
 }
 
@@ -52,5 +54,6 @@ export function updateDealStatus(id: string, status: DealStatus): Deal {
   if (!ok) {
     throw new HttpError(500, 'Failed to persist deal');
   }
+  broadcastDealEvent({ type: 'DEAL_STATUS_CHANGED', deal: updated });
   return updated;
 }

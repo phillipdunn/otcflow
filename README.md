@@ -6,46 +6,47 @@ This README describes **what is in the repo today**. For **what each part means 
 
 ## What exists right now
 
-| Area                  | Implemented                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Monorepo**          | `apps/web`, `apps/api`, `packages/shared`; root scripts in `package.json`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 3 OTC deal blotter** wired to the API with **TanStack Query** (`GET /deals`, `POST /deals`, `PATCH /deals/:id/status`), **`src/api/requestJson.ts`** (shared `fetch` + errors) and **`src/api/dealsClient.ts`** (deal paths + Zod), loading/error UI, create form, detail status actions, and **query invalidation** after mutations. **`useBlotterView`** still owns search, filter, sort, and selection (**UI state**). Optional **`VITE_API_URL`** (defaults to `http://localhost:3000`). `mockDeals.ts` remains as validated sample data, not the default source. |
-| **`apps/api`**        | Express (default port **3000**). **Phase 2 REST deals API**: in-memory store with seed deals; **`GET /`**, **`GET /health`**, **`GET /deals`**, **`GET /deals/:id`**, **`POST /deals`**, **`PATCH /deals/:id/status`**. Zod validation on create and status update; shared **`Deal`** shape from `@otcflow/shared`. CORS for `http://localhost:5173` (includes `PATCH`).                                                                                                                                                                                                                                      |
-| **`packages/shared`** | **`Deal`** (`ProductType`, `Currency`, `DealStatus`, timestamps, `version`, …) and **`DealsArraySchema`** for seed/mock lists; **`HealthResponseSchema`**. Builds to `dist/` on `npm install` (`prepare`).                                                                                                                                                                                                                                                                                                                                                                                                    |
-| **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Area                  | Implemented                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Monorepo**          | `apps/web`, `apps/api`, `packages/shared`; root scripts in `package.json`.                                                                                                                                                                                                                                                                                                                                                                             |
+| **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 4 blotter**: TanStack Query + REST as before, plus **`useDealEventsWebSocket`** — connects to **`ws://…/ws/deals`**, applies **`DealEvent`** payloads to the **`['deals']`** cache with **version-based stale protection**, and **reconnects** with exponential backoff after disconnect. **`src/api/requestJson.ts`** adds **`getDealsWebSocketUrl()`** (same host as **`VITE_API_URL`** / default **3000**). |
+| **`apps/api`**        | Express on port **3000**; **`node:http`** **`createServer(app)`** shares the port with **`ws`** **`WebSocketServer`** on **`/ws/deals`**. REST: **`GET /`**, **`GET /health`**, **`GET /deals`**, **`GET /deals/:id`**, **`POST /deals`**, **`PATCH /deals/:id/status`**. After create / status update, **`broadcastDealEvent`** sends **`DEAL_CREATED`** / **`DEAL_STATUS_CHANGED`** (shared **`DealEvent`** JSON) to all sockets.                    |
+| **`packages/shared`** | **`Deal`**, **`DealEvent`** (`DEAL_CREATED`, `DEAL_STATUS_CHANGED` + Zod), **`DealsArraySchema`**, **`HealthResponseSchema`**. Builds to `dist/` on `npm install` (`prepare`).                                                                                                                                                                                                                                                                         |
+| **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package.                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ## Repository layout
 
-| Path              | Role                                                                                                                                                              |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web`        | Browser UI (Vite `:5173`). Blotter under `src/blotter/`; HTTP helpers under `src/api/`. TanStack Query for server cache.                                          |
-| `apps/api`        | HTTP API (Express, default `:3000`). Source is split into `routes/`, `controllers/`, `services/`, `data/` (in-memory store + seed), `validation/`, `middleware/`. |
-| `packages/shared` | Shared Zod schemas and inferred types consumed by web and API (`Deal`, health, …).                                                                                |
+| Path              | Role                                                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/web`        | Browser UI (Vite `:5173`). Blotter under `src/blotter/`; HTTP helpers under `src/api/`. TanStack Query for server cache.       |
+| `apps/api`        | HTTP + WebSocket on **`:3000`** (`src/ws/dealsWs.ts`). Routes / controllers / services / `data` / `validation` / `middleware`. |
+| `packages/shared` | Shared Zod schemas and inferred types consumed by web and API (`Deal`, health, …).                                             |
 
 ### Web blotter (`apps/web/src/blotter/`)
 
-| File / area                  | Role                                                                                                                                                 |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BlotterScreen.tsx`          | TanStack Query: `useQuery` for deals, mutations for create/status, loading/error/refresh UI; composes toolbar, table, detail, optional create panel. |
-| `blotterToolbarContext.ts`   | Toolbar context value + `useBlotterToolbar` hook.                                                                                                    |
-| `BlotterToolbarProvider.tsx` | Context `Provider` (keeps Fast Refresh happy).                                                                                                       |
-| `useBlotterView.ts`          | Filters, sort, selection, derived `visibleDeals` / `selectedDeal` from the deal list.                                                                |
-| `queryKeys.ts`               | Shared React Query cache keys (`['deals']`).                                                                                                         |
-| `mockDeals.ts`               | `MOCK_DEALS` — validated sample list; not wired as the default data source.                                                                          |
-| `CreateDealForm.tsx`         | `POST /deals` via `useMutation`; invalidates deals query on success.                                                                                 |
-| `BlotterToolbar.tsx`         | Search + product/status filters + sort controls (reads context).                                                                                     |
-| `DealTable.tsx`              | Accessible table (`role`, `aria-selected`, keyboard row activation).                                                                                 |
-| `DealDetailPanel.tsx`        | Side panel; Escape closes; status buttons call `PATCH /deals/:id/status`.                                                                            |
-| `formatDealDisplay.ts`       | Shared display formatting (notional, dates, price, status badge class).                                                                              |
-| `sortChevron.ts`             | Sort direction indicator for toolbar labels.                                                                                                         |
-| `blotter.css`                | Blotter layout and styling.                                                                                                                          |
+| File / area                  | Role                                                                                                                       |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `BlotterScreen.tsx`          | Query + mutations + **`useDealEventsWebSocket`**; loading/error/refresh UI; composes toolbar, table, detail, create panel. |
+| `useDealEventsWebSocket.ts`  | WebSocket client: merge events into React Query cache, version guard, exponential backoff reconnect.                       |
+| `blotterToolbarContext.ts`   | Toolbar context value + `useBlotterToolbar` hook.                                                                          |
+| `BlotterToolbarProvider.tsx` | Context `Provider` (keeps Fast Refresh happy).                                                                             |
+| `useBlotterView.ts`          | Filters, sort, selection, derived `visibleDeals` / `selectedDeal` from the deal list.                                      |
+| `queryKeys.ts`               | Shared React Query cache keys (`['deals']`).                                                                               |
+| `mockDeals.ts`               | `MOCK_DEALS` — validated sample list; not wired as the default data source.                                                |
+| `CreateDealForm.tsx`         | `POST /deals` via `useMutation`; invalidates deals query on success.                                                       |
+| `BlotterToolbar.tsx`         | Search + product/status filters + sort controls (reads context).                                                           |
+| `DealTable.tsx`              | Accessible table (`role`, `aria-selected`, keyboard row activation).                                                       |
+| `DealDetailPanel.tsx`        | Side panel; Escape closes; status buttons call `PATCH /deals/:id/status`.                                                  |
+| `formatDealDisplay.ts`       | Shared display formatting (notional, dates, price, status badge class).                                                    |
+| `sortChevron.ts`             | Sort direction indicator for toolbar labels.                                                                               |
+| `blotter.css`                | Blotter layout and styling.                                                                                                |
 
 ### Web API client (`apps/web/src/api/`)
 
-| File             | Role                                                                                                             |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `dealsClient.ts` | `fetchDeals`, `postDeal`, `patchDealStatus`; Zod-parse responses; re-exports deal helpers from `requestJson.ts`. |
-| `requestJson.ts` | `requestJson`, `getApiBaseUrl`, `ApiRequestError` — shared `fetch` + JSON error handling for any API path.       |
+| File             | Role                                                                                                                  |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `dealsClient.ts` | `fetchDeals`, `postDeal`, `patchDealStatus`; Zod-parse responses; re-exports deal helpers from `requestJson.ts`.      |
+| `requestJson.ts` | `requestJson`, `getApiBaseUrl`, `getDealsWebSocketUrl`, `ApiRequestError` — shared `fetch` + WS URL for any API path. |
 
 ## Why it is structured this way
 
@@ -67,7 +68,9 @@ This README describes **what is in the repo today**. For **what each part means 
 
 9. **TanStack Query (web)** — Server-fetched deals and mutations live in the query cache (`['deals']`); UI filters/sort/selection stay in React state and `useBlotterView`.
 
-**Not in this repo:** AWS, Docker, GraphQL, WebSockets, PostgreSQL, Prisma, auth (by design until you add them).
+10. **WebSocket deal events** — API broadcasts **`DealEvent`** after writes; web **`setQueryData`** merges by **`deal.version`** to ignore stale/out-of-order messages; reconnect with backoff if the socket drops.
+
+**Not in this repo:** AWS, Docker, GraphQL, PostgreSQL, Prisma, auth (by design until you add them).
 
 ## Prerequisites
 
@@ -96,32 +99,33 @@ Prettier should report all files OK.
 
 ## Local development
 
-**Web (Phase 3 — blotter + API)**
+**Web (Phase 4 — blotter + REST + WebSocket)**
 
 ```bash
 npm run dev:web
 ```
 
-Run **`npm run dev:api`** in another terminal so `GET /deals` succeeds. Open the URL Vite prints (usually `http://localhost:5173`). The blotter loads **live deals**, supports filters/sort/selection/detail as before, and adds **New deal** plus **status** updates from the detail panel.
+Run **`npm run dev:api`** in another terminal so `GET /deals` and **`ws://localhost:3000/ws/deals`** succeed. Open the URL Vite prints (usually `http://localhost:5173`). The blotter loads **live deals**, keeps filters/sort/selection/detail, **New deal**, and **status** updates; other tabs or clients updating deals appear in near real time via the socket.
 
-Optional: set **`VITE_API_URL`** in **`apps/web/.env`** if the API is not at `http://localhost:3000` (no trailing slash).
+Optional: set **`VITE_API_URL`** in **`apps/web/.env`** if the API is not at `http://localhost:3000` (no trailing slash). The WebSocket URL is derived from the same base (**`ws:`** / **`wss:`** + path **`/ws/deals`**).
 
-**API (Phase 2 — deals REST + health)**
+**API (Phase 4 — REST + deal events WebSocket)**
 
 ```bash
 npm run dev:api
 ```
 
-Expect: `OTCFlow API listening on http://localhost:3000` (override with `PORT` if needed).
+Expect: `OTCFlow API listening on http://localhost:3000` and a line for **`Deal events WebSocket: ws://localhost:3000/ws/deals`** (override with `PORT` if needed).
 
-| Method & path             | Purpose                                                                                                                                                 |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /`                   | Short JSON describing the service and main routes.                                                                                                      |
-| `GET /health`             | Liveness; body validated with `HealthResponseSchema` from shared.                                                                                       |
-| `GET /deals`              | All deals (seed rows plus any created in this process).                                                                                                 |
-| `GET /deals/:id`          | One deal; **404** if missing.                                                                                                                           |
-| `POST /deals`             | Create a deal; server sets `id` (UUID), `createdAt`, `updatedAt`, `version` (starts at **1**). Optional body field `status`; defaults apply if omitted. |
-| `PATCH /deals/:id/status` | Set `status`; bumps `version` and updates `updatedAt`. **404** if missing.                                                                              |
+| Method & path / socket    | Purpose                                                                                                                                                                                             |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /`                   | Short JSON describing the service and main routes.                                                                                                                                                  |
+| `GET /health`             | Liveness; body validated with `HealthResponseSchema` from shared.                                                                                                                                   |
+| `GET /deals`              | All deals (seed rows plus any created in this process).                                                                                                                                             |
+| `GET /deals/:id`          | One deal; **404** if missing.                                                                                                                                                                       |
+| `POST /deals`             | Create a deal; server sets `id` (UUID), `createdAt`, `updatedAt`, `version` (starts at **1**). Optional body field `status`; defaults apply if omitted. Broadcasts **`DEAL_CREATED`** on WebSocket. |
+| `PATCH /deals/:id/status` | Set `status`; bumps `version` and updates `updatedAt`. **404** if missing. Broadcasts **`DEAL_STATUS_CHANGED`** on WebSocket.                                                                       |
+| **`WS /ws/deals`**        | Browser WebSocket; JSON messages match **`DealEvent`** in **`@otcflow/shared`** (`DEAL_CREATED` / `DEAL_STATUS_CHANGED`, each with a full **`deal`**).                                              |
 
 Example requests with **curl** (after `npm run dev:api`):
 
@@ -147,7 +151,7 @@ curl -s -X PATCH "http://localhost:3000/deals/<id>/status" \
   -d '{"status":"BOOKED"}'
 ```
 
-Invalid JSON bodies or Zod validation failures return **400** with error detail from the error middleware. The web blotter calls these endpoints via **`apps/web/src/api/dealsClient.ts`** (built on **`requestJson.ts`** for HTTP; see Local development → Web).
+Invalid JSON bodies or Zod validation failures return **400** with error detail from the error middleware. The web blotter calls REST via **`apps/web/src/api/dealsClient.ts`** and subscribes to **`/ws/deals`** via **`useDealEventsWebSocket`** (see Local development → Web).
 
 ## Build
 

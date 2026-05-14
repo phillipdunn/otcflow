@@ -15,6 +15,15 @@ export {
   type ProductType,
 } from './deal.js';
 
+export {
+  DealCreatedEventSchema,
+  DealEventSchema,
+  DealStatusChangedEventSchema,
+  type DealCreatedEvent,
+  type DealEvent,
+  type DealStatusChangedEvent,
+} from './dealEvents.js';
+
 /** Minimal contract used by API + web to prove shared package wiring. */
 export const HealthResponseSchema = z.object({
   status: z.literal('ok'),

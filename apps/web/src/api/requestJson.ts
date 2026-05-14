@@ -17,6 +17,17 @@ export function getApiBaseUrl(): string {
   return 'http://localhost:3000';
 }
 
+/** WebSocket URL for deal events (same host as REST, path `/ws/deals`). */
+export function getDealsWebSocketUrl(): string {
+  const base = getApiBaseUrl();
+  const url = new URL(base);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.pathname = '/ws/deals';
+  url.search = '';
+  url.hash = '';
+  return url.toString();
+}
+
 function extractErrorMessage(json: unknown, fallback: string): string {
   if (
     typeof json === 'object' &&

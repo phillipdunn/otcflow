@@ -15,23 +15,23 @@ The **goal stack** (built incrementally; much of it not wired yet):
 - Shared TypeScript types (and validation) in a library
 - REST APIs
 - TanStack Query (client data fetching and cache)
-- WebSockets (live quotes, blotter updates, workflow events)
+- WebSockets (live quotes, blotter updates, workflow events) — **Phase 4**: deal create/status events over **`/ws/deals`** (see `docs/phases/phase-4-websocket-realtime.md` if present locally); broader feeds still TBD.
 - PostgreSQL (durable tickets, audit, reference data)
 - Docker (repeatable environments)
 - GraphQL subscriptions (optional pattern for some desks; not required for v1)
 - AWS-style deployment and boundaries **later** (VPC, ALB, managed DB, etc.)
 
-**Boundary for early steps:** avoid pulling in AWS, Docker, GraphQL, WebSockets, databases, and Prisma until you deliberately add them — keep each step small and understandable.
+**Boundary for early steps:** avoid pulling in AWS, Docker, GraphQL, full streaming quote feeds, databases, and Prisma until you deliberately add them — keep each step small and understandable. (Deal-row **WebSockets** are in for Phase 4; everything else on the list above is still optional / later.)
 
 ---
 
 ## What each repo area _is_ (in platform terms)
 
-| Path                  | What it represents on a real desk                                                                           | What it should grow into                                                                                                                                     |
-| --------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`apps/web`**        | **Dealing desk / client UI** — where front office see quotes, tickets, risk hints, and workflow state.      | Rich screens for RFQs, axes, negotiation, and ticket lifecycle; live updates via WebSockets or similar; server-state via TanStack Query when you add it.     |
-| **`apps/api`**        | **Gateway / orchestration** — the HTTP edge traders and internal tools hit first.                           | REST (and later optional GraphQL) for commands and queries; authn/authz; mapping to internal services; validation; rate limits; correlation IDs for support. |
-| **`packages/shared`** | **Wire contracts** — the law of the land for JSON payloads between UI and API (and later between services). | Zod (or equivalent) schemas for RFQs, legs, parties, statuses, and errors; inferred TypeScript types so UI and API cannot drift silently.                    |
+| Path                  | What it represents on a real desk                                                                           | What it should grow into                                                                                                                                                             |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`apps/web`**        | **Dealing desk / client UI** — where front office see quotes, tickets, risk hints, and workflow state.      | Rich screens for RFQs, axes, negotiation, and ticket lifecycle; **Phase 4** adds WebSocket-driven deal row updates into TanStack Query; further live feeds (quotes, risk) still TBD. |
+| **`apps/api`**        | **Gateway / orchestration** — the HTTP edge traders and internal tools hit first.                           | REST (and later optional GraphQL) for commands and queries; authn/authz; mapping to internal services; validation; rate limits; correlation IDs for support.                         |
+| **`packages/shared`** | **Wire contracts** — the law of the land for JSON payloads between UI and API (and later between services). | Zod (or equivalent) schemas for RFQs, legs, parties, statuses, and errors; inferred TypeScript types so UI and API cannot drift silently.                                            |
 
 ---
 
