@@ -5,8 +5,9 @@ export type BlotterSortField = 'notional' | 'updatedAt';
 export type BlotterSortDirection = 'asc' | 'desc';
 
 export interface BlotterViewState {
-  counterpartyQuery: string;
-  setCounterpartyQuery: (value: string) => void;
+  /** Single needle matched (substring, case-insensitive) against counterparty, trader, and broker. */
+  searchQuery: string;
+  setSearchQuery: (value: string) => void;
   productFilter: string;
   setProductFilter: (value: string) => void;
   statusFilter: DealStatus | '';
@@ -22,8 +23,15 @@ export interface BlotterViewState {
   selectedDeal: Deal | null;
 }
 
+function rowMatchesSearch(deal: Deal, needleLower: string): boolean {
+  if (!needleLower) return true;
+  return [deal.counterparty, deal.trader, deal.broker].some((field) =>
+    field.toLowerCase().includes(needleLower)
+  );
+}
+
 export function useBlotterView(allDeals: Deal[]): BlotterViewState {
-  const [counterpartyQuery, setCounterpartyQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [productFilter, setProductFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<DealStatus | ''>('');
   const [sortField, setSortField] = useState<BlotterSortField>('updatedAt');
@@ -39,15 +47,10 @@ export function useBlotterView(allDeals: Deal[]): BlotterViewState {
   );
 
   const visibleDeals = useMemo(() => {
-    const counterpartySearchLower = counterpartyQuery.trim().toLowerCase();
+    const needle = searchQuery.trim().toLowerCase();
 
     let filteredRows = allDeals.filter((deal) => {
-      if (
-        counterpartySearchLower &&
-        !deal.counterparty.toLowerCase().includes(counterpartySearchLower)
-      ) {
-        return false;
-      }
+      if (!rowMatchesSearch(deal, needle)) return false;
       if (productFilter && deal.product !== productFilter) return false;
       if (statusFilter && deal.status !== statusFilter) return false;
       return true;
@@ -65,7 +68,7 @@ export function useBlotterView(allDeals: Deal[]): BlotterViewState {
     });
 
     return filteredRows;
-  }, [allDeals, counterpartyQuery, productFilter, statusFilter, sortField, sortDirection]);
+  }, [allDeals, searchQuery, productFilter, statusFilter, sortField, sortDirection]);
 
   const selectedDeal = useMemo(() => {
     if (!selectedId) return null;
@@ -86,8 +89,8 @@ export function useBlotterView(allDeals: Deal[]): BlotterViewState {
   }, []);
 
   return {
-    counterpartyQuery,
-    setCounterpartyQuery,
+    searchQuery,
+    setSearchQuery,
     productFilter,
     setProductFilter,
     statusFilter,

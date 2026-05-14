@@ -1,120 +1,113 @@
-import { useEffect } from 'react';
+import type { ReactNode } from 'react';
 import type { Deal, DealStatus } from '@otcflow/shared';
 import { DEAL_STATUS_VALUES } from '@otcflow/shared';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Divider from '@mui/material/Divider';
+import Drawer from '@mui/material/Drawer';
+import IconButton from '@mui/material/IconButton';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import CloseIcon from '@mui/icons-material/Close';
 import {
-  dealStatusBadgeClassName,
+  dealStatusMuiColor,
   formatDealNotional,
   formatDealPrice,
   formatDealUpdatedAtDetail,
 } from './formatDealDisplay.js';
 
 export interface DealDetailPanelProps {
-  deal: Deal;
+  deal: Deal | null;
+  open: boolean;
   onClose: () => void;
   onStatusChange?: (status: DealStatus) => void;
   isStatusUpdating?: boolean;
   statusError?: string | null;
 }
 
+function DetailRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <Stack direction="row" spacing={1} sx={{ py: 0.5, alignItems: 'baseline' }}>
+      <Typography component="span" variant="body2" color="text.secondary" sx={{ minWidth: 108 }}>
+        {label}
+      </Typography>
+      <Typography component="span" variant="body2" sx={{ fontFamily: 'ui-monospace, monospace', wordBreak: 'break-all' }}>
+        {value}
+      </Typography>
+    </Stack>
+  );
+}
+
 export function DealDetailPanel({
   deal,
+  open,
   onClose,
   onStatusChange,
   isStatusUpdating = false,
   statusError = null,
 }: DealDetailPanelProps) {
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
-
   return (
-    <aside className="blotter-detail" aria-label="Deal detail">
-      <div className="blotter-detail__head">
-        <h2 className="blotter-detail__title">Deal</h2>
-        <button type="button" className="blotter-detail__close" onClick={onClose}>
-          Close
-        </button>
-      </div>
-      <dl className="blotter-detail__dl">
-        <div className="blotter-detail__row">
-          <dt>ID</dt>
-          <dd className="mono">{deal.id}</dd>
-        </div>
-        <div className="blotter-detail__row">
-          <dt>Product</dt>
-          <dd>{deal.product}</dd>
-        </div>
-        <div className="blotter-detail__row">
-          <dt>Counterparty</dt>
-          <dd>{deal.counterparty}</dd>
-        </div>
-        <div className="blotter-detail__row">
-          <dt>Notional</dt>
-          <dd className="mono">{formatDealNotional(deal.notional)}</dd>
-        </div>
-        <div className="blotter-detail__row">
-          <dt>Currency</dt>
-          <dd className="mono">{deal.currency}</dd>
-        </div>
-        <div className="blotter-detail__row">
-          <dt>Price</dt>
-          <dd className="mono">{formatDealPrice(deal)}</dd>
-        </div>
-        <div className="blotter-detail__row">
-          <dt>Status</dt>
-          <dd>
-            <span className={dealStatusBadgeClassName(deal.status)}>{deal.status}</span>
-          </dd>
-        </div>
-        <div className="blotter-detail__row">
-          <dt>Trader</dt>
-          <dd>{deal.trader}</dd>
-        </div>
-        <div className="blotter-detail__row">
-          <dt>Broker</dt>
-          <dd>{deal.broker}</dd>
-        </div>
-        <div className="blotter-detail__row">
-          <dt>Version</dt>
-          <dd className="mono">{deal.version}</dd>
-        </div>
-        <div className="blotter-detail__row">
-          <dt>Created</dt>
-          <dd className="mono">{formatDealUpdatedAtDetail(deal.createdAt)}</dd>
-        </div>
-        <div className="blotter-detail__row">
-          <dt>Updated</dt>
-          <dd className="mono">{formatDealUpdatedAtDetail(deal.updatedAt)}</dd>
-        </div>
-      </dl>
+    <Drawer anchor="right" open={open} onClose={onClose} slotProps={{ backdrop: { invisible: false } }}>
+      <Box sx={{ width: { xs: '100vw', sm: 400 }, p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h6" component="h2">
+            Trade
+          </Typography>
+          <IconButton aria-label="Close trade detail" onClick={onClose} edge="end" size="small">
+            <CloseIcon />
+          </IconButton>
+        </Stack>
 
-      {onStatusChange ? (
-        <div className="blotter-detail__actions">
-          <h3 className="blotter-detail__actions-title">Update status</h3>
-          <div className="blotter-detail__status-btns" role="group" aria-label="Set deal status">
-            {DEAL_STATUS_VALUES.map((statusValue) => (
-              <button
-                key={statusValue}
-                type="button"
-                className="blotter-status-btn"
-                disabled={statusValue === deal.status || isStatusUpdating}
-                onClick={() => onStatusChange(statusValue)}
-              >
-                {statusValue}
-              </button>
-            ))}
-          </div>
-          {statusError ? (
-            <p className="blotter-inline-error" role="alert">
-              {statusError}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-    </aside>
+        {deal ? (
+          <>
+            <DetailRow label="ID" value={deal.id} />
+            <DetailRow label="Product" value={deal.product} />
+            <DetailRow label="Counterparty" value={deal.counterparty} />
+            <DetailRow label="Notional" value={formatDealNotional(deal.notional)} />
+            <DetailRow label="Currency" value={deal.currency} />
+            <DetailRow label="Price" value={formatDealPrice(deal)} />
+            <Stack direction="row" spacing={1} sx={{ py: 0.5, alignItems: 'center' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 108 }}>
+                Status
+              </Typography>
+              <Chip label={deal.status} size="small" color={dealStatusMuiColor(deal.status)} variant="outlined" />
+            </Stack>
+            <DetailRow label="Trader" value={deal.trader} />
+            <DetailRow label="Broker" value={deal.broker} />
+            <DetailRow label="Version" value={String(deal.version)} />
+            <DetailRow label="Created" value={formatDealUpdatedAtDetail(deal.createdAt)} />
+            <DetailRow label="Updated" value={formatDealUpdatedAtDetail(deal.updatedAt)} />
+
+            {onStatusChange ? (
+              <>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle2" color="text.secondary">
+                  Update status
+                </Typography>
+                <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: 'wrap' }}>
+                  {DEAL_STATUS_VALUES.map((statusValue) => (
+                    <Button
+                      key={statusValue}
+                      variant={deal.status === statusValue ? 'contained' : 'outlined'}
+                      size="small"
+                      disabled={statusValue === deal.status || isStatusUpdating}
+                      onClick={() => onStatusChange(statusValue)}
+                    >
+                      {statusValue}
+                    </Button>
+                  ))}
+                </Stack>
+                {statusError ? (
+                  <Typography variant="body2" color="error" role="alert">
+                    {statusError}
+                  </Typography>
+                ) : null}
+              </>
+            ) : null}
+          </>
+        ) : null}
+      </Box>
+    </Drawer>
   );
 }

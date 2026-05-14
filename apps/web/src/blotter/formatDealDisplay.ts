@@ -1,4 +1,4 @@
-import type { Deal, ProductType } from '@otcflow/shared';
+import type { Deal, DealStatus, ProductType } from '@otcflow/shared';
 
 const notionalDisplayFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
@@ -37,4 +37,24 @@ export function formatDealPrice(deal: Deal): string {
 
 export function dealStatusBadgeClassName(status: Deal['status']): string {
   return `blotter-status blotter-status--${status}`;
+}
+
+/** MUI `Chip` color for desk-style status cues (not business-rule semantics). */
+export function dealStatusMuiColor(
+  status: DealStatus
+): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' {
+  switch (status) {
+    case 'NEW':
+      return 'info';
+    case 'PENDING':
+      return 'warning';
+    case 'MATCHED':
+      return 'secondary';
+    case 'BOOKED':
+      return 'success';
+    case 'CANCELLED':
+      return 'error';
+    default:
+      return 'default';
+  }
 }

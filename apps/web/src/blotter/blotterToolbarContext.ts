@@ -3,8 +3,8 @@ import type { DealStatus } from '@otcflow/shared';
 import type { BlotterSortDirection, BlotterSortField } from './useBlotterView.js';
 
 export interface BlotterToolbarContextValue {
-  counterpartyQuery: string;
-  setCounterpartyQuery: (value: string) => void;
+  searchQuery: string;
+  setSearchQuery: (value: string) => void;
   productFilter: string;
   setProductFilter: (value: string) => void;
   statusFilter: DealStatus | '';

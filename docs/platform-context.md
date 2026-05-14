@@ -29,7 +29,7 @@ The **goal stack** (built incrementally; much of it not wired yet):
 
 | Path                  | What it represents on a real desk                                                                           | What it should grow into                                                                                                                                                             |
 | --------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`apps/web`**        | **Dealing desk / client UI** — where front office see quotes, tickets, risk hints, and workflow state.      | Rich screens for RFQs, axes, negotiation, and ticket lifecycle; **Phase 4** adds WebSocket-driven deal row updates into TanStack Query; further live feeds (quotes, risk) still TBD. |
+| **`apps/web`**        | **Dealing desk / client UI** — where front office see quotes, tickets, risk hints, and workflow state.      | Rich screens for RFQs, axes, negotiation, and ticket lifecycle; **Phase 4** adds WebSocket-driven deal row updates into TanStack Query; **Phase 5** uses **MUI + AG Grid** for the blotter shell and main grid; further live feeds (quotes, risk) still TBD. |
 | **`apps/api`**        | **Gateway / orchestration** — the HTTP edge traders and internal tools hit first.                           | REST (and later optional GraphQL) for commands and queries; authn/authz; mapping to internal services; validation; rate limits; correlation IDs for support.                         |
 | **`packages/shared`** | **Wire contracts** — the law of the land for JSON payloads between UI and API (and later between services). | Zod (or equivalent) schemas for RFQs, legs, parties, statuses, and errors; inferred TypeScript types so UI and API cannot drift silently.                                            |
 
@@ -37,7 +37,7 @@ The **goal stack** (built incrementally; much of it not wired yet):
 
 ## Shipped slice vs full desk (Phase 1)
 
-The **blotter UI** in `apps/web` is a deliberate **thin vertical slice**: same mental model as a live desk (rows = tickets/deals, columns = economics and parties, filters = “what am I looking at?”), but backed by **mock deals** only. It proves:
+The **blotter UI** in `apps/web` is a deliberate **thin vertical slice**: same mental model as a live desk (rows = tickets/deals, columns = economics and parties, filters = “what am I looking at?”), but backed by **mock deals** only. **AG Grid** carries the high-density table (virtualisation, column APIs, export path later); **MUI** carries app chrome, forms, and dialogs. It proves:
 
 - **`Deal`** / **`DealStatus`** in **`packages/shared`** driving the UI types and mock validation.
 - Desk-style interaction patterns (search, filters, sort, drill-in) before you pay the cost of persistence and feeds.

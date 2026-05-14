@@ -1,7 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider } from '@mui/material/styles';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import { blotterTheme } from './blotterTheme.js';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -15,8 +18,11 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
+    <ThemeProvider theme={blotterTheme}>
+      <CssBaseline />
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </ThemeProvider>
   </StrictMode>
 );
