@@ -128,6 +128,7 @@ export class DealStore {
   }
 
   getAll(): Deal[] {
+    // shallow copy of deals returned to avoid accidental mutation 
     return [...this.deals];
   }
 

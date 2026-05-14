@@ -6,37 +6,46 @@ This README describes **what is in the repo today**. For **what each part means 
 
 ## What exists right now
 
-| Area                  | Implemented                                                                                                                                                                                                                                                                                                                                                              |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Monorepo**          | `apps/web`, `apps/api`, `packages/shared`; root scripts in `package.json`.                                                                                                                                                                                                                                                                                               |
-| **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 1 OTC deal blotter** (mock data only): filterable/sortable table, counterparty search, row selection, detail side panel (Escape to close), toolbar state via React context. Lives under `apps/web/src/blotter/`. No API calls yet.                                                                                               |
-| **`apps/api`**        | Express (default port **3000**). **Phase 2 REST deals API**: in-memory store with seed deals; **`GET /`**, **`GET /health`**, **`GET /deals`**, **`GET /deals/:id`**, **`POST /deals`**, **`PATCH /deals/:id/status`**. Zod validation on create and status update; shared **`Deal`** shape from `@otcflow/shared`. CORS for `http://localhost:5173` (includes `PATCH`). |
-| **`packages/shared`** | **`Deal`** (`ProductType`, `Currency`, `DealStatus`, timestamps, `version`, …) and **`DealsArraySchema`** for seed/mock lists; **`HealthResponseSchema`**. Builds to `dist/` on `npm install` (`prepare`).                                                                                                                                                               |
-| **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package.                                                                                                                                                                                                                                                                                                     |
+| Area                  | Implemented                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Monorepo**          | `apps/web`, `apps/api`, `packages/shared`; root scripts in `package.json`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 3 OTC deal blotter** wired to the API with **TanStack Query** (`GET /deals`, `POST /deals`, `PATCH /deals/:id/status`), **`src/api/requestJson.ts`** (shared `fetch` + errors) and **`src/api/dealsClient.ts`** (deal paths + Zod), loading/error UI, create form, detail status actions, and **query invalidation** after mutations. **`useBlotterView`** still owns search, filter, sort, and selection (**UI state**). Optional **`VITE_API_URL`** (defaults to `http://localhost:3000`). `mockDeals.ts` remains as validated sample data, not the default source. |
+| **`apps/api`**        | Express (default port **3000**). **Phase 2 REST deals API**: in-memory store with seed deals; **`GET /`**, **`GET /health`**, **`GET /deals`**, **`GET /deals/:id`**, **`POST /deals`**, **`PATCH /deals/:id/status`**. Zod validation on create and status update; shared **`Deal`** shape from `@otcflow/shared`. CORS for `http://localhost:5173` (includes `PATCH`).                                                                                                                                                                                                                                      |
+| **`packages/shared`** | **`Deal`** (`ProductType`, `Currency`, `DealStatus`, timestamps, `version`, …) and **`DealsArraySchema`** for seed/mock lists; **`HealthResponseSchema`**. Builds to `dist/` on `npm install` (`prepare`).                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ## Repository layout
 
 | Path              | Role                                                                                                                                                              |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web`        | Browser UI (Vite dev server, default `:5173`). Blotter code in `src/blotter/`.                                                                                    |
+| `apps/web`        | Browser UI (Vite `:5173`). Blotter under `src/blotter/`; HTTP helpers under `src/api/`. TanStack Query for server cache.                                          |
 | `apps/api`        | HTTP API (Express, default `:3000`). Source is split into `routes/`, `controllers/`, `services/`, `data/` (in-memory store + seed), `validation/`, `middleware/`. |
 | `packages/shared` | Shared Zod schemas and inferred types consumed by web and API (`Deal`, health, …).                                                                                |
 
 ### Web blotter (`apps/web/src/blotter/`)
 
-| File / area                  | Role                                                                                  |
-| ---------------------------- | ------------------------------------------------------------------------------------- |
-| `BlotterScreen.tsx`          | Composes hook, toolbar provider, table, conditional detail panel.                     |
-| `blotterToolbarContext.ts`   | Toolbar context value + `useBlotterToolbar` hook.                                     |
-| `BlotterToolbarProvider.tsx` | Context `Provider` (keeps Fast Refresh happy).                                        |
-| `useBlotterView.ts`          | Filters, sort, selection, derived `visibleDeals` / `selectedDeal` from the deal list. |
-| `mockDeals.ts`               | `MOCK_DEALS` validated with `DealsArraySchema.parse` at load time.                    |
-| `BlotterToolbar.tsx`         | Search + product/status filters + sort controls (reads context).                      |
-| `DealTable.tsx`              | Accessible table (`role`, `aria-selected`, keyboard row activation).                  |
-| `DealDetailPanel.tsx`        | Side panel for selected deal; Escape closes.                                          |
-| `formatDealDisplay.ts`       | Shared display formatting (notional, dates, price, status badge class).               |
-| `sortChevron.ts`             | Sort direction indicator for toolbar labels.                                          |
-| `blotter.css`                | Blotter layout and styling.                                                           |
+| File / area                  | Role                                                                                                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BlotterScreen.tsx`          | TanStack Query: `useQuery` for deals, mutations for create/status, loading/error/refresh UI; composes toolbar, table, detail, optional create panel. |
+| `blotterToolbarContext.ts`   | Toolbar context value + `useBlotterToolbar` hook.                                                                                                    |
+| `BlotterToolbarProvider.tsx` | Context `Provider` (keeps Fast Refresh happy).                                                                                                       |
+| `useBlotterView.ts`          | Filters, sort, selection, derived `visibleDeals` / `selectedDeal` from the deal list.                                                                |
+| `queryKeys.ts`               | Shared React Query cache keys (`['deals']`).                                                                                                         |
+| `mockDeals.ts`               | `MOCK_DEALS` — validated sample list; not wired as the default data source.                                                                          |
+| `CreateDealForm.tsx`         | `POST /deals` via `useMutation`; invalidates deals query on success.                                                                                 |
+| `BlotterToolbar.tsx`         | Search + product/status filters + sort controls (reads context).                                                                                     |
+| `DealTable.tsx`              | Accessible table (`role`, `aria-selected`, keyboard row activation).                                                                                 |
+| `DealDetailPanel.tsx`        | Side panel; Escape closes; status buttons call `PATCH /deals/:id/status`.                                                                            |
+| `formatDealDisplay.ts`       | Shared display formatting (notional, dates, price, status badge class).                                                                              |
+| `sortChevron.ts`             | Sort direction indicator for toolbar labels.                                                                                                         |
+| `blotter.css`                | Blotter layout and styling.                                                                                                                          |
+
+### Web API client (`apps/web/src/api/`)
+
+| File             | Role                                                                                                             |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `dealsClient.ts` | `fetchDeals`, `postDeal`, `patchDealStatus`; Zod-parse responses; re-exports deal helpers from `requestJson.ts`. |
+| `requestJson.ts` | `requestJson`, `getApiBaseUrl`, `ApiRequestError` — shared `fetch` + JSON error handling for any API path.       |
 
 ## Why it is structured this way
 
@@ -56,7 +65,9 @@ This README describes **what is in the repo today**. For **what each part means 
 
 8. **Toolbar context** — Avoids a long prop list from screen → toolbar; value is `useMemo`’d so consumers do not re-render unnecessarily.
 
-**Not in this repo:** AWS, Docker, GraphQL, WebSockets, PostgreSQL, Prisma, TanStack Query (by design until you add them).
+9. **TanStack Query (web)** — Server-fetched deals and mutations live in the query cache (`['deals']`); UI filters/sort/selection stay in React state and `useBlotterView`.
+
+**Not in this repo:** AWS, Docker, GraphQL, WebSockets, PostgreSQL, Prisma, auth (by design until you add them).
 
 ## Prerequisites
 
@@ -85,13 +96,15 @@ Prettier should report all files OK.
 
 ## Local development
 
-**Web (primary for Phase 1 blotter)**
+**Web (Phase 3 — blotter + API)**
 
 ```bash
 npm run dev:web
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`). You should see the **deal blotter** with mock rows; filters, sort, row click, detail panel, and Escape-to-close work **without** the API.
+Run **`npm run dev:api`** in another terminal so `GET /deals` succeeds. Open the URL Vite prints (usually `http://localhost:5173`). The blotter loads **live deals**, supports filters/sort/selection/detail as before, and adds **New deal** plus **status** updates from the detail panel.
+
+Optional: set **`VITE_API_URL`** in **`apps/web/.env`** if the API is not at `http://localhost:3000` (no trailing slash).
 
 **API (Phase 2 — deals REST + health)**
 
@@ -134,7 +147,7 @@ curl -s -X PATCH "http://localhost:3000/deals/<id>/status" \
   -d '{"status":"BOOKED"}'
 ```
 
-Invalid JSON bodies or Zod validation failures return **400** with error detail from the error middleware. The web blotter still uses mock data only; wiring it to this API is a later step.
+Invalid JSON bodies or Zod validation failures return **400** with error detail from the error middleware. The web blotter calls these endpoints via **`apps/web/src/api/dealsClient.ts`** (built on **`requestJson.ts`** for HTTP; see Local development → Web).
 
 ## Build
 
@@ -155,4 +168,4 @@ Builds `@otcflow/shared`, then `@otcflow/web` (`tsc -b` + `vite build` → `apps
 | `npm run format`       | Prettier write       |
 | `npm run format:check` | Prettier check       |
 
-When the web app calls the API again, you can point it with `VITE_API_URL` if the API is not at `http://localhost:3000`.
+Set **`VITE_API_URL`** in **`apps/web/.env`** if the API is not at `http://localhost:3000` (no trailing slash).

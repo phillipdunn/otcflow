@@ -14,6 +14,7 @@ app.use(
 );
 app.use(express.json());
 
+// '/' route registered inline 
 app.get('/', (_req, res) => {
   res.json({
     service: 'otcflow-api',
@@ -21,6 +22,8 @@ app.get('/', (_req, res) => {
   });
 });
 
+// the routes in here are registered at the route of the app, so the
+// paths inside are the real paths e.g. /deals/:id/status
 app.use(healthRouter);
 app.use(dealsRouter);
 

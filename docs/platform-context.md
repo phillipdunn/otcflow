@@ -42,7 +42,7 @@ The **blotter UI** in `apps/web` is a deliberate **thin vertical slice**: same m
 - **`Deal`** / **`DealStatus`** in **`packages/shared`** driving the UI types and mock validation.
 - Desk-style interaction patterns (search, filters, sort, drill-in) before you pay the cost of persistence and feeds.
 
-Replacing **`MOCK_DEALS`** with API + TanStack Query (or WebSocket snapshots) later should reuse the same **`useBlotterView`** shape: swap the source list, keep the presentation components.
+Replacing **`MOCK_DEALS`** with API + TanStack Query (or WebSocket snapshots) later should reuse the same **`useBlotterView`** shape: swap the source list, keep the presentation components. The web client uses **`apps/web/src/api/requestJson.ts`** for generic **`fetch`** + **`ApiRequestError`**, and **`dealsClient.ts`** for deal paths plus Zod (**`Deal`** / **`Deal[]`**) so new resources can share the HTTP layer without duplicating error handling.
 
 ---
 

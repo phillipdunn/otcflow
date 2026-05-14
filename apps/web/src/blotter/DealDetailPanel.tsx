@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import type { Deal } from '@otcflow/shared';
+import type { Deal, DealStatus } from '@otcflow/shared';
+import { DEAL_STATUS_VALUES } from '@otcflow/shared';
 import {
   dealStatusBadgeClassName,
   formatDealNotional,
@@ -10,9 +11,18 @@ import {
 export interface DealDetailPanelProps {
   deal: Deal;
   onClose: () => void;
+  onStatusChange?: (status: DealStatus) => void;
+  isStatusUpdating?: boolean;
+  statusError?: string | null;
 }
 
-export function DealDetailPanel({ deal, onClose }: DealDetailPanelProps) {
+export function DealDetailPanel({
+  deal,
+  onClose,
+  onStatusChange,
+  isStatusUpdating = false,
+  statusError = null,
+}: DealDetailPanelProps) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -81,6 +91,30 @@ export function DealDetailPanel({ deal, onClose }: DealDetailPanelProps) {
           <dd className="mono">{formatDealUpdatedAtDetail(deal.updatedAt)}</dd>
         </div>
       </dl>
+
+      {onStatusChange ? (
+        <div className="blotter-detail__actions">
+          <h3 className="blotter-detail__actions-title">Update status</h3>
+          <div className="blotter-detail__status-btns" role="group" aria-label="Set deal status">
+            {DEAL_STATUS_VALUES.map((statusValue) => (
+              <button
+                key={statusValue}
+                type="button"
+                className="blotter-status-btn"
+                disabled={statusValue === deal.status || isStatusUpdating}
+                onClick={() => onStatusChange(statusValue)}
+              >
+                {statusValue}
+              </button>
+            ))}
+          </div>
+          {statusError ? (
+            <p className="blotter-inline-error" role="alert">
+              {statusError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </aside>
   );
 }
