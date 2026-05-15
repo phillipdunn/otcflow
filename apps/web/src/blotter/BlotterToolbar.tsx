@@ -12,6 +12,7 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { useBlotterToolbar } from './blotterToolbarContext.js';
 import { sortChevronIndicator } from './sortChevron.js';
+import { ToolbarCurrentUserDisplay } from './ToolbarCurrentUserDisplay.js';
 
 export function BlotterToolbar() {
   const toolbar = useBlotterToolbar();
@@ -24,6 +25,8 @@ export function BlotterToolbar() {
         useFlexGap
         sx={{ flexWrap: 'wrap', alignItems: { md: 'center' } }}
       >
+        <ToolbarCurrentUserDisplay />
+
         <TextField
           label="Search"
           placeholder="Counterparty, trader, broker…"

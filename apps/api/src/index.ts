@@ -4,6 +4,7 @@ import express from 'express';
 import { dealsRouter } from './routes/deals.routes.js';
 import { healthRouter } from './routes/health.routes.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
+import { userContextMiddleware } from './middleware/userContext.middleware.js';
 import { attachDealsWebSocket } from './ws/dealsWs.js';
 
 const app = express();
@@ -12,9 +13,11 @@ app.use(
   cors({
     origin: 'http://localhost:5173',
     methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'x-user-id'],
   })
 );
 app.use(express.json());
+app.use(userContextMiddleware);
 
 app.get('/', (_req, res) => {
   res.json({

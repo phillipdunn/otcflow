@@ -24,6 +24,17 @@ export {
   type DealStatusChangedEvent,
 } from './dealEvents.js';
 
+export {
+  DEFAULT_MOCK_USER_ID,
+  MOCK_USERS,
+  USER_ROLE_VALUES,
+  UserRoleSchema,
+  UserSchema,
+  UsersArraySchema,
+  type User,
+  type UserRole,
+} from './user.js';
+
 /** Minimal contract used by API + web to prove shared package wiring. */
 export const HealthResponseSchema = z.object({
   status: z.literal('ok'),

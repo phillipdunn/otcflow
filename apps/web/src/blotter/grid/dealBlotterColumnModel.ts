@@ -11,7 +11,14 @@ const rightNumericHeaderStyle: HeaderStyle = {
   boxSizing: 'border-box',
 };
 
-const numericBodyCellStyle: CellStyle = { lineHeight: 'normal' };
+/** Right-aligned numbers: flex keeps values vertically centred; flex-end preserves column edge alignment. */
+const numericBodyCellStyle: CellStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'flex-end',
+  lineHeight: 'normal',
+};
+
 const flexCenterBodyCellStyle: CellStyle = {
   display: 'flex',
   alignItems: 'center',
@@ -59,11 +66,6 @@ export const dealBlotterColumnDefs: ColDef<Deal>[] = [
   },
 ];
 
-/**
- * `display: flex` on the cell root shifts right-aligned value text vs the header (which stays
- * `inline-flex`). Status/chip columns need flex; notional/price use AG Grid defaults so the
- * column reads as one straight line like Status.
- */
 export const dealBlotterDefaultColDef: ColDef<Deal> = {
   sortable: false,
   resizable: true,

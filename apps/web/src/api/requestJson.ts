@@ -1,3 +1,5 @@
+import { getMutationUserHeaders } from './requestUserHeader.js';
+
 export class ApiRequestError extends Error {
   constructor(
     message: string,
@@ -53,6 +55,11 @@ export async function requestJson(path: string, init: RequestInit = {}): Promise
     !headers.has('Content-Type')
   ) {
     headers.set('Content-Type', 'application/json');
+  }
+  if (method === 'POST' || method === 'PATCH') {
+    for (const [key, value] of Object.entries(getMutationUserHeaders())) {
+      headers.set(key, value);
+    }
   }
 
   let res: Response;

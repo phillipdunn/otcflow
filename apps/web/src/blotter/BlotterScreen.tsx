@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import type { DealStatus } from '@otcflow/shared';
 import Alert from '@mui/material/Alert';
-import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -10,10 +9,9 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import LinearProgress from '@mui/material/LinearProgress';
-import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
+import { BlotterAppBar } from './BlotterAppBar.js';
 import { fetchDeals, patchDealStatus } from '../api/dealsClient.js';
 import { BlotterToolbar } from './BlotterToolbar.js';
 import { BlotterToolbarProvider } from './BlotterToolbarProvider.js';
@@ -24,7 +22,7 @@ import { DealDetailPanel } from './DealDetailPanel.js';
 import { dealQueryKeys } from './queryKeys.js';
 import { useBlotterView } from './useBlotterView.js';
 import { useDealEventsWebSocket } from './useDealEventsWebSocket.js';
-import { blotterChrome } from '../blotterTheme.js';
+import { CurrentUserProvider } from './CurrentUserProvider.js';
 
 export function BlotterScreen() {
   const queryClient = useQueryClient();
@@ -101,47 +99,9 @@ export function BlotterScreen() {
   };
 
   return (
+    <CurrentUserProvider>
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="static">
-        <Toolbar variant="dense">
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h6" component="h1" sx={{ color: 'inherit' }}>
-              OTCFlow
-            </Typography>
-            <Typography variant="caption" sx={{ color: blotterChrome.headerMuted, display: 'block', mt: 0.25 }}>
-              OTC trade blotter · REST + TanStack Query + realtime (Phase 5: MUI + AG Grid)
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            size="medium"
-            startIcon={<AddIcon />}
-            onClick={() => setShowCreateForm(true)}
-            disabled={dealsQuery.isPending}
-            disableElevation
-            sx={{
-              flexShrink: 0,
-              fontWeight: 600,
-              textTransform: 'none',
-              bgcolor: blotterChrome.headerCtaBg,
-              color: blotterChrome.headerCtaText,
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.22)',
-              border: '1px solid rgba(226, 232, 240, 0.9)',
-              '&:hover': {
-                bgcolor: blotterChrome.headerCtaHoverBg,
-                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.28)',
-              },
-              '&:disabled': {
-                bgcolor: 'rgba(248, 250, 252, 0.55)',
-                color: 'rgba(15, 23, 42, 0.42)',
-                borderColor: 'rgba(226, 232, 240, 0.5)',
-              },
-            }}
-          >
-            New trade
-          </Button>
-        </Toolbar>
-      </AppBar>
+      <BlotterAppBar onNewTrade={() => setShowCreateForm(true)} newTradeDisabled={dealsQuery.isPending} />
 
       {dealsQuery.isFetching && !dealsQuery.isPending ? <LinearProgress sx={{ height: 2 }} /> : null}
 
@@ -220,5 +180,6 @@ export function BlotterScreen() {
         statusError={statusError}
       />
     </Box>
+    </CurrentUserProvider>
   );
 }

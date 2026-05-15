@@ -44,8 +44,12 @@ export function DealBlotterGrid({ deals, selectedId, onSelectDeal }: DealBlotter
           width: '100%',
           maxHeight: '100%',
         },
+        '& .ag-right-aligned-cell.ag-cell': {
+          justifyContent: 'flex-end',
+        },
         '& .ag-right-aligned-cell .ag-cell-wrapper': {
           justifyContent: 'flex-end',
+          width: '100%',
         },
         '& .ag-right-aligned-cell .ag-react-container': {
           justifyContent: 'flex-end',
