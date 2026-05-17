@@ -39,8 +39,9 @@ export function BlotterScreen() {
 
   const patchStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: DealStatus }) => patchDealStatus(id, status),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: dealQueryKeys.all });
+      void queryClient.invalidateQueries({ queryKey: dealQueryKeys.auditEvents(variables.id) });
     },
   });
 

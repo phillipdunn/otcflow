@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import type { Deal, DealStatus } from '@otcflow/shared';
+import type { Deal, DealStatus, User } from '@otcflow/shared';
 import { dealStore } from '../data/deal.store.js';
 import { HttpError } from '../middleware/error.middleware.js';
 import type { CreateDealBody } from '../validation/deal.validation.js';
+import { recordDealCreated, recordDealStatusChanged } from './audit.service.js';
 import { broadcastDealEvent } from '../ws/dealsWs.js';
 
 export function listDeals(): Deal[] {
@@ -17,7 +18,7 @@ export function getDealById(id: string): Deal {
   return deal;
 }
 
-export function createDeal(body: CreateDealBody): Deal {
+export function createDeal(body: CreateDealBody, user: User): Deal {
   const now = new Date().toISOString();
   const status: DealStatus = body.status ?? 'NEW';
   const deal: Deal = {
@@ -35,15 +36,17 @@ export function createDeal(body: CreateDealBody): Deal {
     version: 1,
   };
   dealStore.insert(deal);
+  recordDealCreated(deal, user);
   broadcastDealEvent({ type: 'DEAL_CREATED', deal });
   return deal;
 }
 
-export function updateDealStatus(id: string, status: DealStatus): Deal {
+export function updateDealStatus(id: string, status: DealStatus, user: User): Deal {
   const existing = dealStore.getById(id);
   if (!existing) {
     throw new HttpError(404, 'Deal not found');
   }
+  const previousStatus = existing.status;
   const updated: Deal = {
     ...existing,
     status,
@@ -54,6 +57,7 @@ export function updateDealStatus(id: string, status: DealStatus): Deal {
   if (!ok) {
     throw new HttpError(500, 'Failed to persist deal');
   }
+  recordDealStatusChanged(updated, user, previousStatus, status);
   broadcastDealEvent({ type: 'DEAL_STATUS_CHANGED', deal: updated });
   return updated;
 }

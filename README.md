@@ -9,9 +9,9 @@ This README describes **what is in the repo today**. For **what each part means 
 | Area                  | Implemented                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Monorepo**          | `apps/web`, `apps/api`, `packages/shared`; root scripts in `package.json`.                                                                                                                                                                                                                                                                                                                                                                             |
-| **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 5 blotter**: **MUI** (**`ThemeProvider`**, layout, **`Dialog`** for create, **`Drawer`** for deal detail, toolbar/filters/forms, **`Chip`** for status) + **AG Grid** (**`DealBlotterGrid`**) for the main table — column formatters for notional / price / timestamps, MUI **`Chip`** status cell renderer, row click opens the drawer. **Phase 4** behaviour retained: TanStack Query + REST, **`useDealEventsWebSocket`** on **`/ws/deals`** with version-guarded cache merge and reconnect backoff. **`requestJson.ts`** still supplies **`getDealsWebSocketUrl()`**. |
-| **`apps/api`**        | Express on port **3000**; **`node:http`** **`createServer(app)`** shares the port with **`ws`** **`WebSocketServer`** on **`/ws/deals`**. REST: **`GET /`**, **`GET /health`**, **`GET /deals`**, **`GET /deals/:id`**, **`POST /deals`**, **`PATCH /deals/:id/status`**. After create / status update, **`broadcastDealEvent`** sends **`DEAL_CREATED`** / **`DEAL_STATUS_CHANGED`** (shared **`DealEvent`** JSON) to all sockets.                    |
-| **`packages/shared`** | **`Deal`**, **`DealEvent`** (`DEAL_CREATED`, `DEAL_STATUS_CHANGED` + Zod), **`DealsArraySchema`**, **`HealthResponseSchema`**. Builds to `dist/` on `npm install` (`prepare`).                                                                                                                                                                                                                                                                         |
+| **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 5 blotter**: **MUI** + **AG Grid**; **Phase 6**: **Acting as** user in app bar, **`x-user-id`** on mutations. **Phase 7**: **Audit History** in deal **`Drawer`** (**`DealAuditHistory`**, TanStack Query **`['deals', id, 'auditEvents']`**). **Phase 4** retained: TanStack Query + REST, **`useDealEventsWebSocket`** on **`/ws/deals`** with version-guarded cache merge and reconnect backoff. |
+| **`apps/api`**        | Express on **3000** + **`/ws/deals`**. REST: health, deals CRUD-ish, **`GET /deals/:id/events`** (audit, newest first), **`POST /deals`**, **`PATCH /deals/:id/status`**. **`userContextMiddleware`** → **`req.currentUser`** from **`x-user-id`**; create/status append immutable **`AuditEvent`** rows. WebSocket still broadcasts **`DealEvent`** snapshots after writes. |
+| **`packages/shared`** | **`Deal`**, **`DealEvent`**, **`AuditEvent`** (+ Zod), **`User`** / **`MOCK_USERS`**, **`HealthResponseSchema`**. Builds to `dist/` on `npm install` (`prepare`). |
 | **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package.                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ## Repository layout
@@ -40,7 +40,9 @@ This README describes **what is in the repo today**. For **what each part means 
 | `grid/dealBlotterColumnModel.ts` | Column defs + **`defaultColDef`** (cell alignment rules) in one place.                                                   |
 | `grid/renderers/DealStatusCellRenderer.tsx` | React cell renderer for the status column (MUI **`Chip`**).                                                    |
 | `grid/registerAgGridModules.ts` | One-time **`ModuleRegistry.registerModules([AllCommunityModule])`**.                                                    |
-| `DealDetailPanel.tsx`        | MUI **`Drawer`**; status buttons call `PATCH /deals/:id/status`.                                                           |
+| `DealDetailPanel.tsx`        | MUI **`Drawer`**; status buttons; **Audit History** section.                                                                 |
+| `DealAuditHistory.tsx`       | Timeline feed for **`GET /deals/:id/events`**.                                                                               |
+| `formatAuditEventType.ts`    | Human labels for audit event types.                                                                                          |
 | `formatDealDisplay.ts`       | Notional, dates, price formatters; **`dealStatusMuiColor`** for **`Chip`** colours.                                        |
 | `sortChevron.ts`             | Sort direction indicator for toolbar labels.                                                                               |
 
@@ -48,7 +50,7 @@ This README describes **what is in the repo today**. For **what each part means 
 
 | File             | Role                                                                                                                  |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `dealsClient.ts` | `fetchDeals`, `postDeal`, `patchDealStatus`; Zod-parse responses; re-exports deal helpers from `requestJson.ts`.      |
+| `dealsClient.ts` | `fetchDeals`, `fetchDealAuditEvents`, `postDeal`, `patchDealStatus`; Zod-parse responses; re-exports deal helpers from `requestJson.ts`. |
 | `requestJson.ts` | `requestJson`, `getApiBaseUrl`, `getDealsWebSocketUrl`, `ApiRequestError` — shared `fetch` + WS URL for any API path. |
 
 ## Why it is structured this way
@@ -72,6 +74,8 @@ This README describes **what is in the repo today**. For **what each part means 
 9. **TanStack Query (web)** — Server-fetched deals and mutations live in the query cache (`['deals']`); UI filters/sort/selection stay in React state and `useBlotterView`.
 
 10. **WebSocket deal events** — API broadcasts **`DealEvent`** after writes; web **`setQueryData`** merges by **`deal.version`** to ignore stale/out-of-order messages; reconnect with backoff if the socket drops.
+
+11. **Audit trail (Phase 7)** — Append-only **`AuditEvent`** log per deal; attributed to **`req.currentUser`** on create/status; **`GET /deals/:id/events`**; drawer timeline; cache invalidated on mutations and WebSocket updates. See [docs/phases/phase-7-audit-trail.md](docs/phases/phase-7-audit-trail.md).
 
 **Not in this repo:** AWS, Docker, GraphQL, PostgreSQL, Prisma, auth (by design until you add them).
 
@@ -126,8 +130,9 @@ Expect: `OTCFlow API listening on http://localhost:3000` and a line for **`Deal 
 | `GET /health`             | Liveness; body validated with `HealthResponseSchema` from shared.                                                                                                                                   |
 | `GET /deals`              | All deals (seed rows plus any created in this process).                                                                                                                                             |
 | `GET /deals/:id`          | One deal; **404** if missing.                                                                                                                                                                       |
-| `POST /deals`             | Create a deal; server sets `id` (UUID), `createdAt`, `updatedAt`, `version` (starts at **1**). Optional body field `status`; defaults apply if omitted. Broadcasts **`DEAL_CREATED`** on WebSocket. |
-| `PATCH /deals/:id/status` | Set `status`; bumps `version` and updates `updatedAt`. **404** if missing. Broadcasts **`DEAL_STATUS_CHANGED`** on WebSocket.                                                                       |
+| `GET /deals/:id/events`   | Audit history for a deal (**`AuditEvent[]`**, newest first); **404** if deal missing.                                                                                                              |
+| `POST /deals`             | Create a deal; server sets `id` (UUID), `createdAt`, `updatedAt`, `version` (starts at **1**). Optional body field `status`; defaults apply if omitted. Appends **`DEAL_CREATED`** audit row; broadcasts **`DEAL_CREATED`** on WebSocket. Send **`x-user-id`** (Phase 6) for attribution. |
+| `PATCH /deals/:id/status` | Set `status`; bumps `version` and updates `updatedAt`. **404** if missing. Appends **`DEAL_STATUS_CHANGED`** audit row; broadcasts **`DEAL_STATUS_CHANGED`** on WebSocket. **`x-user-id`** for actor. |
 | **`WS /ws/deals`**        | Browser WebSocket; JSON messages match **`DealEvent`** in **`@otcflow/shared`** (`DEAL_CREATED` / `DEAL_STATUS_CHANGED`, each with a full **`deal`**).                                              |
 
 Example requests with **curl** (after `npm run dev:api`):

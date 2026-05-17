@@ -43,8 +43,9 @@ export function CreateDealForm({ onCreated }: CreateDealFormProps) {
 
   const createMutation = useMutation({
     mutationFn: (body: CreateDealInput) => postDeal(body),
-    onSuccess: () => {
+    onSuccess: (deal) => {
       void queryClient.invalidateQueries({ queryKey: dealQueryKeys.all });
+      void queryClient.invalidateQueries({ queryKey: dealQueryKeys.auditEvents(deal.id) });
       setForm(defaultForm);
       setIncludeStatus(false);
       onCreated?.();

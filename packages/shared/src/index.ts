@@ -35,6 +35,15 @@ export {
   type UserRole,
 } from './user.js';
 
+export {
+  AUDIT_EVENT_TYPE_VALUES,
+  AuditEventSchema,
+  AuditEventTypeSchema,
+  AuditEventsArraySchema,
+  type AuditEvent,
+  type AuditEventType,
+} from './auditEvent.js';
+
 /** Minimal contract used by API + web to prove shared package wiring. */
 export const HealthResponseSchema = z.object({
   status: z.literal('ok'),

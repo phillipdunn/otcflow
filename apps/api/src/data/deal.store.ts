@@ -1,4 +1,5 @@
 import { DealsArraySchema, type Deal } from '@otcflow/shared';
+import { seedAuditCreatedEventsFromDeals } from '../services/audit.service.js';
 
 /**
  * Initial rows for the in-memory API store (validated like production payloads).
@@ -150,3 +151,5 @@ export class DealStore {
 }
 
 export const dealStore = new DealStore();
+
+seedAuditCreatedEventsFromDeals(dealStore.getAll());

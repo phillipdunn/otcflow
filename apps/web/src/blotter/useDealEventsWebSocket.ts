@@ -89,6 +89,7 @@ export function useDealEventsWebSocket(): void {
           const raw: unknown = JSON.parse(event.data as string);
           const parsed = DealEventSchema.parse(raw);
           queryClient.setQueryData<Deal[]>(dealQueryKeys.all, (old) => applyDealEvent(old, parsed));
+          void queryClient.invalidateQueries({ queryKey: dealQueryKeys.auditEvents(parsed.deal.id) });
         } catch {
           // Malformed or unexpected payload — ignore
         }

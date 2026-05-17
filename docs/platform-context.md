@@ -16,7 +16,8 @@ The **goal stack** (built incrementally; much of it not wired yet):
 - REST APIs
 - TanStack Query (client data fetching and cache)
 - WebSockets (live quotes, blotter updates, workflow events) — **Phase 4**: deal create/status events over **`/ws/deals`** ([phase-4 walkthrough](phases/phase-4-websocket-realtime.md)); broader feeds still TBD.
-- **Acting user / attribution (demo)** — **Phase 6**: mock **`User`** + **`x-user-id`** → **`req.currentUser`** on the API ([phase-6 walkthrough](phases/phase-6-user-context.md)); not login or RBAC yet — prerequisite for audit trail (Step 7).
+- **Acting user / attribution (demo)** — **Phase 6**: mock **`User`** + **`x-user-id`** → **`req.currentUser`** on the API ([phase-6 walkthrough](phases/phase-6-user-context.md)); not login or RBAC yet.
+- **Audit trail (demo)** — **Phase 7**: append-only **`AuditEvent`** history per deal, attributed to **`req.currentUser`** on create/status ([phase-7 walkthrough](phases/phase-7-audit-trail.md)); in-memory only until Postgres.
 - PostgreSQL (durable tickets, audit, reference data)
 - Docker (repeatable environments)
 - GraphQL subscriptions (optional pattern for some desks; not required for v1)
@@ -30,9 +31,9 @@ The **goal stack** (built incrementally; much of it not wired yet):
 
 | Path                  | What it represents on a real desk                                                                           | What it should grow into                                                                                                                                                             |
 | --------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`apps/web`**        | **Dealing desk / client UI** — where front office see quotes, tickets, risk hints, and workflow state.      | Rich screens for RFQs, axes, negotiation, and ticket lifecycle; **Phase 4** WebSocket-driven deal updates; **Phase 5** **MUI + AG Grid** blotter; **Phase 6** “acting as” user in the app bar + **`x-user-id`** on mutations; further live feeds (quotes, risk) still TBD. |
-| **`apps/api`**        | **Gateway / orchestration** — the HTTP edge traders and internal tools hit first.                           | REST for commands and queries; **Phase 6** resolves **`x-user-id`** to **`req.currentUser`** (mock users today); later JWT/session, RBAC, correlation IDs, rate limits.                         |
-| **`packages/shared`** | **Wire contracts** — the law of the land for JSON payloads between UI and API (and later between services). | Zod schemas for **`Deal`**, **`DealEvent`**, **`User`** (desk roles), and errors; inferred TypeScript types so UI and API cannot drift silently.                                            |
+| **`apps/web`**        | **Dealing desk / client UI** — where front office see quotes, tickets, risk hints, and workflow state.      | Rich screens for RFQs, axes, negotiation, and ticket lifecycle; **Phase 4** WebSocket-driven deal updates; **Phase 5** **MUI + AG Grid** blotter; **Phase 6** “acting as” user in the app bar + **`x-user-id`** on mutations; **Phase 7** audit timeline in deal detail; further live feeds (quotes, risk) still TBD. |
+| **`apps/api`**        | **Gateway / orchestration** — the HTTP edge traders and internal tools hit first.                           | REST for commands and queries; **Phase 6** **`req.currentUser`**; **Phase 7** append-only audit log + **`GET /deals/:id/events`**; later JWT/session, RBAC, durable audit store.                         |
+| **`packages/shared`** | **Wire contracts** — the law of the land for JSON payloads between UI and API (and later between services). | Zod schemas for **`Deal`**, **`DealEvent`**, **`AuditEvent`**, **`User`**, and errors; inferred TypeScript types so UI and API cannot drift silently.                                            |
 
 ---
 
@@ -60,9 +61,9 @@ On a live desk, every material action is tied to a **person or system account** 
 - HTTP: mutations send **`x-user-id`** (demo header — not cryptographically trusted).
 - API: **`userContextMiddleware`** sets **`req.currentUser`**; TypeScript knows about it via **`apps/api/src/types/express.d.ts`** (declaration merge on **`Express.Request`** — compile-time only; middleware sets the value at runtime).
 
-Step 7 (audit trail) will **consume** **`req.currentUser`** when appending immutable history rows. Production path: JWT/session → verified identity → same **`req.currentUser`** hook → RBAC on transitions.
+**Phase 7** appends immutable **`AuditEvent`** rows on create/status using **`req.currentUser`**. Production path: JWT/session → verified identity → same **`req.currentUser`** hook → RBAC on transitions → durable audit table.
 
-Details: [phases/phase-6-user-context.md](phases/phase-6-user-context.md).
+Details: [phases/phase-6-user-context.md](phases/phase-6-user-context.md), [phases/phase-7-audit-trail.md](phases/phase-7-audit-trail.md).
 
 ## Ticket / workflow lifecycle (conceptual)
 
@@ -76,7 +77,7 @@ The monorepo structure supports evolving those states in **`packages/shared`** w
 
 ## Event-driven angle
 
-“Event-driven” here means: important state changes should be observable as **facts** (messages or events) that multiple consumers can react to — blotter, risk, confirmations, ops dashboards — not only as a single synchronous HTTP response. **Phase 4** pushes **`DealEvent`** snapshots over **`/ws/deals`**; **Phase 6** adds **who** initiated writes via **`req.currentUser`** (audit history in Step 7 will persist that separately from the mutable **`Deal`** row).
+“Event-driven” here means: important state changes should be observable as **facts** (messages or events) that multiple consumers can react to — blotter, risk, confirmations, ops dashboards — not only as a single synchronous HTTP response. **Phase 4** pushes **`DealEvent`** snapshots over **`/ws/deals`** (live UI). **Phase 6** adds **who** initiated writes via **`req.currentUser`**. **Phase 7** persists **audit facts** separately from the mutable **`Deal`** row (**`GET /deals/:id/events`**).
 
 ---
 

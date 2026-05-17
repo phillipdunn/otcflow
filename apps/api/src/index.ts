@@ -22,7 +22,7 @@ app.use(userContextMiddleware);
 app.get('/', (_req, res) => {
   res.json({
     service: 'otcflow-api',
-    message: 'REST + WS — GET /health, GET /deals, WebSocket path /ws/deals …',
+    message: 'REST + WS — GET /health, GET /deals, GET /deals/:id/events, WebSocket path /ws/deals …',
   });
 });
 

@@ -1,6 +1,8 @@
 import {
+  AuditEventsArraySchema,
   DealSchema,
   DealsArraySchema,
+  type AuditEvent,
   type Currency,
   type Deal,
   type DealStatus,
@@ -32,6 +34,11 @@ export async function postDeal(body: CreateDealInput): Promise<Deal> {
     body: JSON.stringify(body),
   });
   return DealSchema.parse(json);
+}
+
+export async function fetchDealAuditEvents(dealId: string): Promise<AuditEvent[]> {
+  const json = await requestJson(`/deals/${encodeURIComponent(dealId)}/events`, { method: 'GET' });
+  return AuditEventsArraySchema.parse(json);
 }
 
 export async function patchDealStatus(id: string, status: DealStatus): Promise<Deal> {
