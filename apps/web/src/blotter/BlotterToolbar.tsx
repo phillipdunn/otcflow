@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { DealStatus } from '@otcflow/shared';
 import { DEAL_STATUS_VALUES } from '@otcflow/shared';
 import Box from '@mui/material/Box';
@@ -12,121 +13,158 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { useBlotterToolbar } from './blotterToolbarContext.js';
 import { sortChevronIndicator } from './sortChevron.js';
-import { BlotterSimulatorControls } from './BlotterSimulatorControls.js';
-import { ToolbarCurrentUserDisplay } from './ToolbarCurrentUserDisplay.js';
+
+function ToolbarRow({
+  left,
+  right,
+}: {
+  left: ReactNode;
+  right: ReactNode;
+}) {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', md: 'row' },
+        alignItems: { md: 'center' },
+        justifyContent: 'space-between',
+        gap: 1.5,
+        rowGap: 1.5,
+      }}
+    >
+      <Box sx={{ minWidth: 0 }}>{left}</Box>
+      <Box
+        sx={{
+          flexShrink: 0,
+          display: 'flex',
+          justifyContent: { xs: 'flex-start', md: 'flex-end' },
+          alignSelf: { xs: 'stretch', md: 'center' },
+        }}
+      >
+        {right}
+      </Box>
+    </Box>
+  );
+}
 
 export function BlotterToolbar() {
   const toolbar = useBlotterToolbar();
 
   return (
     <Paper elevation={0} sx={{ px: 2, py: 1.5, borderRadius: 0, borderBottom: 1, borderColor: 'divider' }}>
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={2}
-        useFlexGap
-        sx={{ flexWrap: 'wrap', alignItems: { md: 'center' } }}
-      >
-        <ToolbarCurrentUserDisplay />
-
-        <BlotterSimulatorControls />
-
-        <TextField
-          label="Search"
-          placeholder="Counterparty, trader, broker…"
-          value={toolbar.searchQuery}
-          onChange={(e) => toolbar.setSearchQuery(e.target.value)}
-          size="small"
-          autoComplete="off"
-          sx={{ minWidth: { xs: '100%', md: 280 } }}
+      <Stack spacing={1}>
+        <ToolbarRow
+          left={
+            <Stack
+              direction="row"
+              useFlexGap
+              sx={{ flexWrap: 'wrap', alignItems: 'center', gap: 2 }}
+            >
+              <TextField
+                label="Search"
+                placeholder="Counterparty, trader, broker…"
+                value={toolbar.searchQuery}
+                onChange={(e) => toolbar.setSearchQuery(e.target.value)}
+                size="small"
+                autoComplete="off"
+                sx={{ width: { xs: '100%', sm: 280 }, flexShrink: 0 }}
+              />
+              <FormControl size="small" sx={{ minWidth: 160, flexShrink: 0 }}>
+                <InputLabel id="blotter-product-filter-label">Product</InputLabel>
+                <Select
+                  labelId="blotter-product-filter-label"
+                  label="Product"
+                  value={toolbar.productFilter}
+                  onChange={(e) => toolbar.setProductFilter(e.target.value)}
+                >
+                  <MenuItem value="">
+                    <em>All products</em>
+                  </MenuItem>
+                  {toolbar.productOptions.map((productName) => (
+                    <MenuItem key={productName} value={productName}>
+                      {productName}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 160, flexShrink: 0 }}>
+                <InputLabel id="blotter-status-filter-label">Status</InputLabel>
+                <Select
+                  labelId="blotter-status-filter-label"
+                  label="Status"
+                  value={toolbar.statusFilter}
+                  onChange={(e) => toolbar.setStatusFilter(e.target.value as DealStatus | '')}
+                >
+                  <MenuItem value="">
+                    <em>All statuses</em>
+                  </MenuItem>
+                  {DEAL_STATUS_VALUES.map((statusValue) => (
+                    <MenuItem key={statusValue} value={statusValue}>
+                      {statusValue}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Stack>
+          }
+          right={
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              sx={{ flexWrap: 'nowrap', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}
+            >
+              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                Sort
+              </Typography>
+              <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'nowrap' }}>
+                <Button
+                  size="small"
+                  variant={toolbar.sortField === 'createdAt' ? 'contained' : 'outlined'}
+                  onClick={() => toolbar.setSort('createdAt')}
+                  sx={{ whiteSpace: 'nowrap' }}
+                >
+                  Created {sortChevronIndicator('createdAt', toolbar.sortField, toolbar.sortDirection)}
+                </Button>
+                <Button
+                  size="small"
+                  variant={toolbar.sortField === 'notional' ? 'contained' : 'outlined'}
+                  onClick={() => toolbar.setSort('notional')}
+                  sx={{ whiteSpace: 'nowrap' }}
+                >
+                  Notional {sortChevronIndicator('notional', toolbar.sortField, toolbar.sortDirection)}
+                </Button>
+                <Button
+                  size="small"
+                  variant={toolbar.sortField === 'updatedAt' ? 'contained' : 'outlined'}
+                  onClick={() => toolbar.setSort('updatedAt')}
+                  sx={{ whiteSpace: 'nowrap' }}
+                >
+                  Updated {sortChevronIndicator('updatedAt', toolbar.sortField, toolbar.sortDirection)}
+                </Button>
+              </Stack>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                component="span"
+                sx={{
+                  whiteSpace: 'nowrap',
+                  minWidth: '6.5rem',
+                  textAlign: 'right',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {toolbar.resultCount.toLocaleString()} trades
+              </Typography>
+            </Stack>
+          }
         />
 
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel id="blotter-product-filter-label">Product</InputLabel>
-          <Select
-            labelId="blotter-product-filter-label"
-            label="Product"
-            value={toolbar.productFilter}
-            onChange={(e) => toolbar.setProductFilter(e.target.value)}
-          >
-            <MenuItem value="">
-              <em>All products</em>
-            </MenuItem>
-            {toolbar.productOptions.map((productName) => (
-              <MenuItem key={productName} value={productName}>
-                {productName}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel id="blotter-status-filter-label">Status</InputLabel>
-          <Select
-            labelId="blotter-status-filter-label"
-            label="Status"
-            value={toolbar.statusFilter}
-            onChange={(e) => toolbar.setStatusFilter(e.target.value as DealStatus | '')}
-          >
-            <MenuItem value="">
-              <em>All statuses</em>
-            </MenuItem>
-            {DEAL_STATUS_VALUES.map((statusValue) => (
-              <MenuItem key={statusValue} value={statusValue}>
-                {statusValue}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <Box sx={{ flexGrow: { xs: 0, md: 1 }, minWidth: { md: 16 } }} />
-
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-            flexWrap: 'wrap',
-            width: { xs: '100%', md: 'auto' },
-            justifyContent: { xs: 'flex-start', md: 'flex-end' },
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
-              Sort
-            </Typography>
-            <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
-              <Button
-                size="small"
-                variant={toolbar.sortField === 'createdAt' ? 'contained' : 'outlined'}
-                onClick={() => toolbar.setSort('createdAt')}
-              >
-                Created {sortChevronIndicator('createdAt', toolbar.sortField, toolbar.sortDirection)}
-              </Button>
-              <Button
-                size="small"
-                variant={toolbar.sortField === 'notional' ? 'contained' : 'outlined'}
-                onClick={() => toolbar.setSort('notional')}
-              >
-                Notional {sortChevronIndicator('notional', toolbar.sortField, toolbar.sortDirection)}
-              </Button>
-              <Button
-                size="small"
-                variant={toolbar.sortField === 'updatedAt' ? 'contained' : 'outlined'}
-                onClick={() => toolbar.setSort('updatedAt')}
-              >
-                Updated {sortChevronIndicator('updatedAt', toolbar.sortField, toolbar.sortDirection)}
-              </Button>
-            </Stack>
-            {toolbar.sortField === 'updatedAt' ? (
-              <Typography variant="caption" color="text.secondary" sx={{ width: '100%', mt: 0.25 }}>
-                Live updates reorder rows when sorted by Updated.
-              </Typography>
-            ) : null}
-          </Box>
-          <Typography variant="body2" color="text.secondary" component="span" sx={{ whiteSpace: 'nowrap' }}>
-            {toolbar.resultCount} trades
+        {toolbar.sortField === 'updatedAt' ? (
+          <Typography variant="caption" color="text.secondary">
+            Live updates reorder rows when sorted by Updated.
           </Typography>
-        </Box>
+        ) : null}
       </Stack>
     </Paper>
   );

@@ -55,12 +55,12 @@ export function BlotterSimulatorControls() {
 
   return (
     <Stack
-      direction={{ xs: 'column', lg: 'row' }}
+      direction="row"
       spacing={1}
-      useFlexGap
-      sx={{ alignItems: { lg: 'center' }, flexWrap: 'wrap' }}
+      alignItems="center"
+      sx={{ flexWrap: 'nowrap', flexShrink: 0 }}
     >
-      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mr: 0.5 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
         Simulator
       </Typography>
       <Button
@@ -84,25 +84,35 @@ export function BlotterSimulatorControls() {
         Reset data
       </Button>
       {status ? (
-        <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
+        <>
           <Chip
             size="small"
             label={status.running ? 'Running' : 'Stopped'}
             color={status.running ? 'success' : 'default'}
             variant={status.running ? 'filled' : 'outlined'}
+            sx={{ flexShrink: 0 }}
           />
-          <Typography variant="caption" color="text.secondary" component="span">
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            component="span"
+            sx={{
+              whiteSpace: 'nowrap',
+              fontVariantNumeric: 'tabular-nums',
+              minWidth: { xs: '12rem', xl: '18rem' },
+            }}
+          >
             {status.dealCount.toLocaleString()} deals · {status.eventsEmitted.toLocaleString()} events · seq{' '}
             {status.lastSequenceNumber}
           </Typography>
-        </Stack>
+        </>
       ) : statusQuery.isPending ? (
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
           Loading status…
         </Typography>
       ) : null}
       {error ? (
-        <Alert severity="error" variant="outlined" sx={{ py: 0, px: 1 }}>
+        <Alert severity="error" variant="outlined" sx={{ py: 0, px: 1, flexShrink: 1, minWidth: 0 }}>
           {error instanceof Error ? error.message : 'Simulator request failed'}
         </Alert>
       ) : null}

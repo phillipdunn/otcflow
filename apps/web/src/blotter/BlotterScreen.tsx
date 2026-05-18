@@ -23,6 +23,7 @@ import { dealQueryKeys } from './queryKeys.js';
 import { useBlotterView } from './useBlotterView.js';
 import { useDealEventsWebSocket } from './useDealEventsWebSocket.js';
 import { CurrentUserProvider } from './CurrentUserProvider.js';
+import { BlotterDevDock, BLOTTER_DEV_DOCK_HEIGHT_PX } from './BlotterDevDock.js';
 
 export function BlotterScreen() {
   const queryClient = useQueryClient();
@@ -126,12 +127,20 @@ export function BlotterScreen() {
           </Alert>
         </Box>
       ) : (
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            pb: `${BLOTTER_DEV_DOCK_HEIGHT_PX}px`,
+          }}
+        >
           <BlotterToolbarProvider value={toolbarContextValue}>
             <BlotterToolbar />
           </BlotterToolbarProvider>
 
-          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', px: 0, pb: 0 }}>
+          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', px: 0 }}>
             <DealBlotterGrid
               deals={view.visibleDeals}
               selectedId={view.selectedId}
@@ -180,6 +189,8 @@ export function BlotterScreen() {
         isStatusUpdating={isStatusUpdating}
         statusError={statusError}
       />
+
+      <BlotterDevDock />
     </Box>
     </CurrentUserProvider>
   );

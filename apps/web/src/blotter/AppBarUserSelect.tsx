@@ -20,12 +20,22 @@ const headerSelectSx = {
   '& .MuiSvgIcon-root': { color: blotterChrome.headerMuted },
 };
 
-/** User picker only — current user label lives in {@link BlotterToolbar}. */
-export function AppBarUserSelect() {
+const dockSelectSx = {
+  minWidth: { xs: '100%', sm: 220 },
+  flexShrink: 0,
+};
+
+export interface AppBarUserSelectProps {
+  /** `header` = top app bar (light on dark). `dock` = bottom demo bar (standard theme). */
+  variant?: 'header' | 'dock';
+}
+
+/** Acting-as user picker (demo / Phase 6). */
+export function AppBarUserSelect({ variant = 'header' }: AppBarUserSelectProps) {
   const { currentUser, setCurrentUserId, users } = useCurrentUser();
 
   return (
-    <FormControl size="small" sx={headerSelectSx}>
+    <FormControl size="small" sx={variant === 'header' ? headerSelectSx : dockSelectSx}>
       <InputLabel id="appbar-user-label">Acting as</InputLabel>
       <Select
         labelId="appbar-user-label"

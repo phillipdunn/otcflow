@@ -5,7 +5,6 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import AddIcon from '@mui/icons-material/Add';
 import { blotterChrome } from '../blotterTheme.js';
-import { AppBarUserSelect } from './AppBarUserSelect.js';
 
 export interface BlotterAppBarProps {
   onNewTrade: () => void;
@@ -24,7 +23,6 @@ export function BlotterAppBar({ onNewTrade, newTradeDisabled = false }: BlotterA
             OTC trade blotter · REST + TanStack Query + realtime
           </Typography>
         </Box>
-        <AppBarUserSelect />
         <Button
           variant="contained"
           size="medium"
