@@ -1,28 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DealEventSchema, type Deal, type DealEvent } from '@otcflow/shared';
+import { fetchSimulatorStatus } from '../api/simulatorClient.js';
 import { getDealsWebSocketUrl } from '../api/requestJson.js';
-import { dealQueryKeys } from './queryKeys.js';
+import { dealQueryKeys, simulatorQueryKeys } from './queryKeys.js';
 
 /**
- * Merge a deal into the cached list.
- *
- * **Stale / out-of-order protection (what this does):** if the same `id` already exists and
- * `incoming.version <= existing.version`, we keep the cache unchanged. That drops older snapshots
- * that arrive late (reordering on the wire), duplicate echoes after your own mutation + refetch,
- * and any event whose `version` did not advance.
- *
- * **Production challenges this does NOT solve (see desk / scaling notes):**
- * - **Bad `version` semantics** — if the server ever skips bumps or reuses numbers, we can accept
- *   garbage or reject good rows; the client trusts `version` as a per-deal logical clock.
- * - **One aggregate `Deal`** — one version cannot represent conflicting updates on different
- *   dimensions (e.g. status vs economics) unless the server always encodes them in one row.
- * - **Multiple publishers / split brain** — two sources of truth broadcasting the same `id`
- *   without a single ordering authority (bus, DB log, partition key) can still fight the cache.
- * - **Reconnect gap** — while disconnected we only apply pushed events we receive; missed events
- *   are not replayed here (a full snapshot refetch on reconnect or `lastEventId` would be next).
- * - **Cross-entity causality** — ordering across different ids is not validated; only per-id
- *   monotonic `version` is enforced.
+ * Merge a deal into the cached list by per-deal `version`.
+ * Drops stale snapshots for the same id (`incoming.version <= existing.version`).
  */
 function mergeDealByVersion(current: Deal[] | undefined, incoming: Deal): Deal[] {
   const list = current ?? [];
@@ -44,8 +29,9 @@ function applyDealEvent(current: Deal[] | undefined, event: DealEvent): Deal[] {
 }
 
 /**
- * Subscribes to the API deal-events socket for the app lifetime. Updates TanStack Query `['deals']` cache
- * when valid events arrive. Reconnects with exponential backoff after disconnect.
+ * Subscribes to deal-events WebSocket for the app lifetime.
+ * Ignores out-of-order stream events via global `sequenceNumber`, then merges by `deal.version`.
+ * Refetches the deals snapshot after reconnect (gap fill).
  */
 export function useDealEventsWebSocket(): void {
   const queryClient = useQueryClient();
@@ -53,8 +39,28 @@ export function useDealEventsWebSocket(): void {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptRef = useRef(0);
   const mountedRef = useRef(true);
+  const lastSequenceRef = useRef(0);
+  const streamEpochRef = useRef(0);
 
   useEffect(() => {
+    void queryClient
+      .fetchQuery({ queryKey: simulatorQueryKeys.status, queryFn: fetchSimulatorStatus })
+      .then((status) => {
+        streamEpochRef.current = status.streamEpoch;
+        lastSequenceRef.current = status.lastSequenceNumber;
+      })
+      .catch(() => undefined);
+
+    const unsub = queryClient.getQueryCache().subscribe((event) => {
+      if (event.type !== 'updated' || event.query.queryKey[0] !== 'simulator') return;
+      const status = event.query.state.data as { streamEpoch?: number; lastSequenceNumber?: number } | undefined;
+      if (!status || status.streamEpoch === undefined) return;
+      if (status.streamEpoch !== streamEpochRef.current) {
+        streamEpochRef.current = status.streamEpoch;
+        lastSequenceRef.current = status.lastSequenceNumber ?? 0;
+      }
+    });
+
     mountedRef.current = true;
 
     const clearReconnectTimer = () => {
@@ -81,13 +87,24 @@ export function useDealEventsWebSocket(): void {
       wsRef.current = ws;
 
       ws.onopen = () => {
+        const wasReconnect = attemptRef.current > 0;
         attemptRef.current = 0;
+        if (wasReconnect) {
+          lastSequenceRef.current = 0;
+          void queryClient.invalidateQueries({ queryKey: dealQueryKeys.all });
+        }
       };
 
       ws.onmessage = (event) => {
         try {
           const raw: unknown = JSON.parse(event.data as string);
           const parsed = DealEventSchema.parse(raw);
+
+          if (parsed.sequenceNumber <= lastSequenceRef.current) {
+            return;
+          }
+          lastSequenceRef.current = parsed.sequenceNumber;
+
           queryClient.setQueryData<Deal[]>(dealQueryKeys.all, (old) => applyDealEvent(old, parsed));
           void queryClient.invalidateQueries({ queryKey: dealQueryKeys.auditEvents(parsed.deal.id) });
         } catch {
@@ -111,6 +128,7 @@ export function useDealEventsWebSocket(): void {
 
     return () => {
       mountedRef.current = false;
+      unsub();
       clearReconnectTimer();
       wsRef.current?.close();
       wsRef.current = null;

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { Deal, DealStatus } from '@otcflow/shared';
 
-export type BlotterSortField = 'notional' | 'updatedAt';
+export type BlotterSortField = 'createdAt' | 'notional' | 'updatedAt';
 export type BlotterSortDirection = 'asc' | 'desc';
 
 export interface BlotterViewState {
@@ -34,7 +34,8 @@ export function useBlotterView(allDeals: Deal[]): BlotterViewState {
   const [searchQuery, setSearchQuery] = useState('');
   const [productFilter, setProductFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<DealStatus | ''>('');
-  const [sortField, setSortField] = useState<BlotterSortField>('updatedAt');
+  /** `createdAt` default — stable scroll while simulator updates `updatedAt` on other rows. */
+  const [sortField, setSortField] = useState<BlotterSortField>('createdAt');
   const [sortDirection, setSortDirection] = useState<BlotterSortDirection>('desc');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -61,10 +62,11 @@ export function useBlotterView(allDeals: Deal[]): BlotterViewState {
         const notionalComparison = leftDeal.notional - rightDeal.notional;
         return sortDirection === 'asc' ? notionalComparison : -notionalComparison;
       }
-      const leftUpdatedMs = Date.parse(leftDeal.updatedAt);
-      const rightUpdatedMs = Date.parse(rightDeal.updatedAt);
-      const updatedAtComparison = leftUpdatedMs - rightUpdatedMs;
-      return sortDirection === 'asc' ? updatedAtComparison : -updatedAtComparison;
+      const timeField = sortField === 'updatedAt' ? 'updatedAt' : 'createdAt';
+      const leftMs = Date.parse(leftDeal[timeField]);
+      const rightMs = Date.parse(rightDeal[timeField]);
+      const timeComparison = leftMs - rightMs;
+      return sortDirection === 'asc' ? timeComparison : -timeComparison;
     });
 
     return filteredRows;
@@ -80,7 +82,7 @@ export function useBlotterView(allDeals: Deal[]): BlotterViewState {
       setSortDirection((previousDirection) => (previousDirection === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortField(field);
-      setSortDirection(field === 'updatedAt' ? 'desc' : 'desc');
+      setSortDirection('desc');
     }
   };
 

@@ -71,9 +71,46 @@ export function listDealAuditEvents(dealId: string): AuditEvent[] {
 }
 
 /** Synthetic `DEAL_CREATED` per seed deal so existing rows have a trail after restart. */
-export function seedAuditCreatedEventsFromDeals(deals: Deal[]): void {
-  const systemUser = getDefaultUser();
+export function recordDealPriceChanged(
+  deal: Deal,
+  user: User,
+  previousPrice: string,
+  newPrice: string
+): AuditEvent {
+  return appendAuditEvent({
+    deal,
+    type: 'DEAL_PRICE_CHANGED',
+    user,
+    summary: `Price changed from ${previousPrice} to ${newPrice}`,
+    previousValue: previousPrice,
+    newValue: newPrice,
+  });
+}
+
+export function recordDealAmended(
+  deal: Deal,
+  user: User,
+  fieldLabel: string,
+  previousValue: string,
+  newValue: string
+): AuditEvent {
+  return appendAuditEvent({
+    deal,
+    type: 'DEAL_AMENDED',
+    user,
+    summary: `${fieldLabel} amended from ${previousValue} to ${newValue}`,
+    previousValue,
+    newValue,
+  });
+}
+
+export function clearAllAuditEvents(): void {
+  auditEventStore.clear();
+}
+
+export function seedAuditCreatedEventsFromDeals(deals: Deal[], user?: User): void {
+  const actor = user ?? getDefaultUser();
   for (const deal of deals) {
-    recordDealCreated(deal, systemUser);
+    recordDealCreated(deal, actor);
   }
 }

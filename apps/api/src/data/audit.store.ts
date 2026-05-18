@@ -15,6 +15,10 @@ export class AuditEventStore {
       .slice()
       .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   }
+
+  clear(): void {
+    this.events = [];
+  }
 }
 
 export const auditEventStore = new AuditEventStore();

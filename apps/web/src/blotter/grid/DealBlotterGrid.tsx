@@ -19,7 +19,6 @@ export function DealBlotterGrid({ deals, selectedId, onSelectDeal }: DealBlotter
   const theme = useTheme();
   const selectedBg =
     theme.palette.mode === 'dark' ? 'action.selected' : theme.palette.action.hover;
-
   return (
     <Box
       className="ag-theme-material"
@@ -64,7 +63,8 @@ export function DealBlotterGrid({ deals, selectedId, onSelectDeal }: DealBlotter
         rowHeight={44}
         headerHeight={40}
         suppressCellFocus
-        animateRows
+        animateRows={false}
+        suppressScrollOnNewData
         domLayout="normal"
         onRowClicked={(e) => {
           const id = e.data?.id;

@@ -16,17 +16,35 @@ export {
 } from './deal.js';
 
 export {
+  DealAmendedEventSchema,
   DealCreatedEventSchema,
   DealEventSchema,
+  DealPriceChangedEventSchema,
   DealStatusChangedEventSchema,
+  type DealAmendedEvent,
   type DealCreatedEvent,
   type DealEvent,
+  type DealPriceChangedEvent,
   type DealStatusChangedEvent,
 } from './dealEvents.js';
 
 export {
+  SIMULATOR_DEAL_COUNT_DEFAULT,
+  SIMULATOR_DEAL_COUNT_MAX,
+  SIMULATOR_DEAL_COUNT_MIN,
+  SIMULATOR_DEFAULT_INTERVAL_MS,
+  SimulatorResetBodySchema,
+  SimulatorStartBodySchema,
+  SimulatorStatusSchema,
+  type SimulatorResetBody,
+  type SimulatorStartBody,
+  type SimulatorStatus,
+} from './simulator.js';
+
+export {
   DEFAULT_MOCK_USER_ID,
   MOCK_USERS,
+  SIMULATOR_SYSTEM_USER,
   USER_ROLE_VALUES,
   UserRoleSchema,
   UserSchema,

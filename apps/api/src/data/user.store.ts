@@ -1,4 +1,4 @@
-import { DEFAULT_MOCK_USER_ID, MOCK_USERS, type User } from '@otcflow/shared';
+import { DEFAULT_MOCK_USER_ID, MOCK_USERS, SIMULATOR_SYSTEM_USER, type User } from '@otcflow/shared';
 
 const usersById = new Map<string, User>(MOCK_USERS.map((user) => [user.id, user]));
 
@@ -12,4 +12,8 @@ export function getDefaultUser(): User {
 
 export function listUsers(): User[] {
   return [...MOCK_USERS];
+}
+
+export function getSimulatorUser(): User {
+  return SIMULATOR_SYSTEM_USER;
 }

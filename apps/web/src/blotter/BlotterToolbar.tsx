@@ -12,6 +12,7 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { useBlotterToolbar } from './blotterToolbarContext.js';
 import { sortChevronIndicator } from './sortChevron.js';
+import { BlotterSimulatorControls } from './BlotterSimulatorControls.js';
 import { ToolbarCurrentUserDisplay } from './ToolbarCurrentUserDisplay.js';
 
 export function BlotterToolbar() {
@@ -26,6 +27,8 @@ export function BlotterToolbar() {
         sx={{ flexWrap: 'wrap', alignItems: { md: 'center' } }}
       >
         <ToolbarCurrentUserDisplay />
+
+        <BlotterSimulatorControls />
 
         <TextField
           label="Search"
@@ -91,7 +94,14 @@ export function BlotterToolbar() {
             <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
               Sort
             </Typography>
-            <Stack direction="row" spacing={0.5}>
+            <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
+              <Button
+                size="small"
+                variant={toolbar.sortField === 'createdAt' ? 'contained' : 'outlined'}
+                onClick={() => toolbar.setSort('createdAt')}
+              >
+                Created {sortChevronIndicator('createdAt', toolbar.sortField, toolbar.sortDirection)}
+              </Button>
               <Button
                 size="small"
                 variant={toolbar.sortField === 'notional' ? 'contained' : 'outlined'}
@@ -107,6 +117,11 @@ export function BlotterToolbar() {
                 Updated {sortChevronIndicator('updatedAt', toolbar.sortField, toolbar.sortDirection)}
               </Button>
             </Stack>
+            {toolbar.sortField === 'updatedAt' ? (
+              <Typography variant="caption" color="text.secondary" sx={{ width: '100%', mt: 0.25 }}>
+                Live updates reorder rows when sorted by Updated.
+              </Typography>
+            ) : null}
           </Box>
           <Typography variant="body2" color="text.secondary" component="span" sx={{ whiteSpace: 'nowrap' }}>
             {toolbar.resultCount} trades

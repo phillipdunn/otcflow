@@ -23,3 +23,10 @@ export const MOCK_USERS: User[] = UsersArraySchema.parse([
 ]);
 
 export const DEFAULT_MOCK_USER_ID = 'user-trader-01';
+
+/** Attribution for simulator-generated audit rows (not shown in Acting-as picker). */
+export const SIMULATOR_SYSTEM_USER: User = {
+  id: 'user-system-simulator',
+  name: 'Market Simulator',
+  role: 'OPERATIONS',
+};

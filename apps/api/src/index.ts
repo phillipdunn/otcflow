@@ -3,9 +3,14 @@ import cors from 'cors';
 import express from 'express';
 import { dealsRouter } from './routes/deals.routes.js';
 import { healthRouter } from './routes/health.routes.js';
+import { simulatorRouter } from './routes/simulator.routes.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
 import { userContextMiddleware } from './middleware/userContext.middleware.js';
+import { dealStore } from './data/deal.store.js';
+import { seedAuditCreatedEventsFromDeals } from './services/audit.service.js';
 import { attachDealsWebSocket } from './ws/dealsWs.js';
+
+seedAuditCreatedEventsFromDeals(dealStore.getAll());
 
 const app = express();
 
@@ -22,7 +27,8 @@ app.use(userContextMiddleware);
 app.get('/', (_req, res) => {
   res.json({
     service: 'otcflow-api',
-    message: 'REST + WS — GET /health, GET /deals, GET /deals/:id/events, WebSocket path /ws/deals …',
+    message:
+      'REST + WS — GET /health, GET /deals, GET /deals/:id/events, POST /simulator/*, WebSocket /ws/deals …',
   });
 });
 
@@ -47,6 +53,7 @@ app.get('/ws/deals', (req, res) => {
 
 app.use(healthRouter);
 app.use(dealsRouter);
+app.use(simulatorRouter);
 
 app.use(errorMiddleware);
 

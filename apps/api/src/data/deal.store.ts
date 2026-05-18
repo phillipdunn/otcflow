@@ -1,5 +1,4 @@
 import { DealsArraySchema, type Deal } from '@otcflow/shared';
-import { seedAuditCreatedEventsFromDeals } from '../services/audit.service.js';
 
 /**
  * Initial rows for the in-memory API store (validated like production payloads).
@@ -148,8 +147,14 @@ export class DealStore {
     this.deals[index] = updated;
     return true;
   }
+
+  replaceAll(deals: Deal[]): void {
+    this.deals = [...deals];
+  }
+
+  count(): number {
+    return this.deals.length;
+  }
 }
 
 export const dealStore = new DealStore();
-
-seedAuditCreatedEventsFromDeals(dealStore.getAll());
