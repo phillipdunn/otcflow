@@ -3,46 +3,47 @@ import * as auditService from '../services/audit.service.js';
 import * as dealService from '../services/deal.service.js';
 import { CreateDealBodySchema, UpdateDealStatusBodySchema } from '../validation/deal.validation.js';
 
-export function listDeals(_req: Request, res: Response, next: NextFunction): void {
+export async function listDeals(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    res.status(200).json(dealService.listDeals());
+    const deals = await dealService.listDeals();
+    res.status(200).json(deals);
   } catch (err) {
     next(err);
   }
 }
 
-export function getDealById(req: Request, res: Response, next: NextFunction): void {
+export async function getDealById(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const deal = dealService.getDealById(req.params.id ?? '');
+    const deal = await dealService.getDealById(req.params.id ?? '');
     res.status(200).json(deal);
   } catch (err) {
     next(err);
   }
 }
 
-export function listDealAuditEvents(req: Request, res: Response, next: NextFunction): void {
+export async function listDealAuditEvents(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const events = auditService.listDealAuditEvents(req.params.id ?? '');
+    const events = await auditService.listDealAuditEvents(req.params.id ?? '');
     res.status(200).json(events);
   } catch (err) {
     next(err);
   }
 }
 
-export function createDeal(req: Request, res: Response, next: NextFunction): void {
+export async function createDeal(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const body = CreateDealBodySchema.parse(req.body);
-    const deal = dealService.createDeal(body, req.currentUser);
+    const deal = await dealService.createDeal(body, req.currentUser);
     res.status(201).json(deal);
   } catch (err) {
     next(err);
   }
 }
 
-export function patchDealStatus(req: Request, res: Response, next: NextFunction): void {
+export async function patchDealStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const body = UpdateDealStatusBodySchema.parse(req.body);
-    const deal = dealService.updateDealStatus(req.params.id ?? '', body.status, req.currentUser);
+    const deal = await dealService.updateDealStatus(req.params.id ?? '', body.status, req.currentUser);
     res.status(200).json(deal);
   } catch (err) {
     next(err);

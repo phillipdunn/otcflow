@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
 
 export class HttpError extends Error {
@@ -28,6 +29,10 @@ export function errorMiddleware(
       error: 'Validation failed',
       details: err.flatten(),
     });
+    return;
+  }
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+    res.status(404).json({ error: 'Record not found' });
     return;
   }
   console.error(err);

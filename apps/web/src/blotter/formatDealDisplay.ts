@@ -16,6 +16,10 @@ const updatedAtDetailFormatter = new Intl.DateTimeFormat('en-GB', {
 
 const spreadQuotedProducts: ReadonlySet<ProductType> = new Set(['CDS', 'CDX']);
 
+const priceSigFigFormatter = new Intl.NumberFormat('en-US', {
+  maximumSignificantDigits: 3,
+});
+
 export function formatDealNotional(notional: number): string {
   return notionalDisplayFormatter.format(notional);
 }
@@ -32,7 +36,7 @@ export function formatDealUpdatedAtDetail(isoTimestamp: string): string {
 
 export function formatDealPrice(deal: Deal): string {
   if (spreadQuotedProducts.has(deal.product)) return deal.price.toFixed(2);
-  return deal.price.toFixed(4);
+  return priceSigFigFormatter.format(deal.price);
 }
 
 export function dealStatusBadgeClassName(status: Deal['status']): string {

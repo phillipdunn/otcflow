@@ -1,3 +1,4 @@
+import './loadEnv.js';
 import { createServer } from 'node:http';
 import cors from 'cors';
 import express from 'express';
@@ -6,11 +7,9 @@ import { healthRouter } from './routes/health.routes.js';
 import { simulatorRouter } from './routes/simulator.routes.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
 import { userContextMiddleware } from './middleware/userContext.middleware.js';
-import { dealStore } from './data/deal.store.js';
-import { seedAuditCreatedEventsFromDeals } from './services/audit.service.js';
+import { initUserCache } from './data/user.store.js';
+import { prisma } from './db/prisma.js';
 import { attachDealsWebSocket } from './ws/dealsWs.js';
-
-seedAuditCreatedEventsFromDeals(dealStore.getAll());
 
 const app = express();
 
@@ -28,7 +27,7 @@ app.get('/', (_req, res) => {
   res.json({
     service: 'otcflow-api',
     message:
-      'REST + WS — GET /health, GET /deals, GET /deals/:id/events, POST /simulator/*, WebSocket /ws/deals …',
+      'REST + WS + Postgres — GET /health, GET /deals, GET /deals/:id/events, POST /simulator/*, WebSocket /ws/deals …',
   });
 });
 
@@ -62,7 +61,25 @@ const httpServer = createServer(app);
 
 attachDealsWebSocket(httpServer);
 
-httpServer.listen(port, () => {
-  console.log(`OTCFlow API listening on http://localhost:${port}`);
-  console.log(`Deal events WebSocket: ws://localhost:${port}/ws/deals`);
+async function bootstrap(): Promise<void> {
+  await prisma.$connect();
+  await initUserCache();
+
+  httpServer.listen(port, () => {
+    console.log(`OTCFlow API listening on http://localhost:${port}`);
+    console.log(`Deal events WebSocket: ws://localhost:${port}/ws/deals`);
+    console.log('PostgreSQL connected (Prisma)');
+  });
+}
+
+bootstrap().catch((err) => {
+  console.error('Failed to start API:', err);
+  process.exit(1);
+});
+
+process.on('SIGINT', () => {
+  void prisma.$disconnect().finally(() => process.exit(0));
+});
+process.on('SIGTERM', () => {
+  void prisma.$disconnect().finally(() => process.exit(0));
 });

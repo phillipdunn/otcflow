@@ -1,0 +1,98 @@
+// OTCFlow — PostgreSQL persistence (Phase 9)
+// Run: npm run db:migrate -w @otcflow/api
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  BROKER
+  TRADER
+  SUPERVISOR
+  OPERATIONS
+}
+
+enum ProductType {
+  BOND
+  CDS
+  CDX
+  EQUITY_OPTION
+  EQUITY_SWAP
+  FX_NDF
+  FX_OPTION
+  FX_SWAP
+  IRS
+  OIS
+}
+
+enum DealStatus {
+  NEW
+  PENDING
+  MATCHED
+  CANCELLED
+  BOOKED
+}
+
+enum Currency {
+  GBP
+  USD
+  EUR
+}
+
+enum AuditEventType {
+  DEAL_CREATED
+  DEAL_STATUS_CHANGED
+  DEAL_AMENDED
+  DEAL_PRICE_CHANGED
+}
+
+model User {
+  id    String   @id
+  name  String
+  role  UserRole
+
+  auditEvents AuditEvent[]
+}
+
+model Deal {
+  id           String     @id
+  product      ProductType
+  counterparty String
+  notional     Decimal    @db.Decimal(18, 2)
+  currency     Currency
+  price        Decimal    @db.Decimal(18, 6)
+  status       DealStatus
+  trader       String
+  broker       String
+  createdAt    DateTime   @db.Timestamptz(3)
+  updatedAt    DateTime   @db.Timestamptz(3)
+  version      Int
+
+  auditEvents AuditEvent[]
+
+  @@index([updatedAt(sort: Desc)])
+}
+
+model AuditEvent {
+  id            String         @id
+  dealId        String
+  type          AuditEventType
+  timestamp     DateTime       @db.Timestamptz(3)
+  userId        String
+  userName      String
+  userRole      UserRole
+  summary       String
+  previousValue String?
+  newValue      String?
+  version       Int
+
+  deal Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([dealId, timestamp(sort: Desc)])
+}

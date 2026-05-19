@@ -1,24 +1,25 @@
 import { randomUUID } from 'node:crypto';
 import type { Deal, DealStatus, User } from '@otcflow/shared';
-import { dealStore } from '../data/deal.store.js';
+import { prisma } from '../db/prisma.js';
 import { HttpError } from '../middleware/error.middleware.js';
 import type { CreateDealBody } from '../validation/deal.validation.js';
-import { recordDealCreated, recordDealStatusChanged } from './audit.service.js';
+import * as auditService from './audit.service.js';
+import * as dealRepo from '../repositories/deal.repository.js';
 import { broadcastDealEvent } from '../ws/dealsWs.js';
 
-export function listDeals(): Deal[] {
-  return dealStore.getAll();
+export async function listDeals(): Promise<Deal[]> {
+  return dealRepo.listDeals();
 }
 
-export function getDealById(id: string): Deal {
-  const deal = dealStore.getById(id);
+export async function getDealById(id: string): Promise<Deal> {
+  const deal = await dealRepo.findDealById(id);
   if (!deal) {
     throw new HttpError(404, 'Deal not found');
   }
   return deal;
 }
 
-export function createDeal(body: CreateDealBody, user: User): Deal {
+export async function createDeal(body: CreateDealBody, user: User): Promise<Deal> {
   const now = new Date().toISOString();
   const status: DealStatus = body.status ?? 'NEW';
   const deal: Deal = {
@@ -35,14 +36,19 @@ export function createDeal(body: CreateDealBody, user: User): Deal {
     updatedAt: now,
     version: 1,
   };
-  dealStore.insert(deal);
-  recordDealCreated(deal, user);
-  broadcastDealEvent({ type: 'DEAL_CREATED', deal });
-  return deal;
+
+  const persisted = await prisma.$transaction(async (tx) => {
+    const row = await dealRepo.insertDeal(deal, tx);
+    await auditService.recordDealCreated(row, user, tx);
+    return row;
+  });
+
+  broadcastDealEvent({ type: 'DEAL_CREATED', deal: persisted });
+  return persisted;
 }
 
-export function updateDealStatus(id: string, status: DealStatus, user: User): Deal {
-  const existing = dealStore.getById(id);
+export async function updateDealStatus(id: string, status: DealStatus, user: User): Promise<Deal> {
+  const existing = await dealRepo.findDealById(id);
   if (!existing) {
     throw new HttpError(404, 'Deal not found');
   }
@@ -53,11 +59,13 @@ export function updateDealStatus(id: string, status: DealStatus, user: User): De
     version: existing.version + 1,
     updatedAt: new Date().toISOString(),
   };
-  const ok = dealStore.replace(updated);
-  if (!ok) {
-    throw new HttpError(500, 'Failed to persist deal');
-  }
-  recordDealStatusChanged(updated, user, previousStatus, status);
-  broadcastDealEvent({ type: 'DEAL_STATUS_CHANGED', deal: updated });
-  return updated;
+
+  const persisted = await prisma.$transaction(async (tx) => {
+    const row = await dealRepo.updateDeal(updated, tx);
+    await auditService.recordDealStatusChanged(row, user, previousStatus, status, tx);
+    return row;
+  });
+
+  broadcastDealEvent({ type: 'DEAL_STATUS_CHANGED', deal: persisted });
+  return persisted;
 }

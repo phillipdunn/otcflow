@@ -10,7 +10,7 @@ This README describes **what is in the repo today**. For **what each part means 
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Monorepo**          | `apps/web`, `apps/api`, `packages/shared`; root scripts in `package.json`.                                                                                                                                                                                                                                                                                                                                                                             |
 | **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 5 blotter**: **MUI** + **AG Grid**; **Phase 6**: **Acting as** user in app bar, **`x-user-id`** on mutations. **Phase 7**: **Audit History** in deal **`Drawer`** (**`DealAuditHistory`**, TanStack Query **`['deals', id, 'auditEvents']`**). **Phase 4** retained: TanStack Query + REST, **`useDealEventsWebSocket`** on **`/ws/deals`** with version-guarded cache merge and reconnect backoff. |
-| **`apps/api`**        | Express on **3000** + **`/ws/deals`**. REST: health, deals CRUD-ish, **`GET /deals/:id/events`** (audit, newest first), **`POST /deals`**, **`PATCH /deals/:id/status`**. **`userContextMiddleware`** → **`req.currentUser`** from **`x-user-id`**; create/status append immutable **`AuditEvent`** rows. WebSocket still broadcasts **`DealEvent`** snapshots after writes. |
+| **`apps/api`**        | Express on **3000** + **`/ws/deals`**. **PostgreSQL** via **Prisma** (deals + audit persist). REST unchanged; simulator + WS as Phase 8. See [apps/api/DATABASE.md](apps/api/DATABASE.md). |
 | **`packages/shared`** | **`Deal`**, **`DealEvent`**, **`AuditEvent`** (+ Zod), **`User`** / **`MOCK_USERS`**, **`HealthResponseSchema`**. Builds to `dist/` on `npm install` (`prepare`). |
 | **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package.                                                                                                                                                                                                                                                                                                                                                                                   |
 
@@ -83,6 +83,7 @@ This README describes **what is in the repo today**. For **what each part means 
 
 - Node.js 20.x+ (LTS recommended)
 - npm 10.x+
+- PostgreSQL 14+ (local — see [apps/api/DATABASE.md](apps/api/DATABASE.md))
 
 ## Setup
 
@@ -91,6 +92,18 @@ npm install
 ```
 
 Workspaces install; `@otcflow/shared` runs `prepare` and creates `packages/shared/dist/`.
+
+**Database (API):**
+
+```bash
+cp apps/api/.env.example apps/api/.env
+# create DB: createdb otcflow
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+```
+
+Details: [apps/api/DATABASE.md](apps/api/DATABASE.md).
 
 ```bash
 npm run lint
@@ -122,7 +135,7 @@ Optional: set **`VITE_API_URL`** in **`apps/web/.env`** if the API is not at `ht
 npm run dev:api
 ```
 
-Expect: `OTCFlow API listening on http://localhost:3000` and a line for **`Deal events WebSocket: ws://localhost:3000/ws/deals`** (override with `PORT` if needed).
+Expect: `PostgreSQL connected (Prisma)`, `OTCFlow API listening on http://localhost:3000`, and **`Deal events WebSocket: ws://localhost:3000/ws/deals`** (override with `PORT` if needed).
 
 | Method & path / socket    | Purpose                                                                                                                                                                                             |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -148,7 +161,7 @@ Create a deal (`product` must be a valid `ProductType` from shared, e.g. `IRS`; 
 ```bash
 curl -s -X POST http://localhost:3000/deals \
   -H 'Content-Type: application/json' \
-  -d '{"product":"IRS","counterparty":"Acme Corp","notional":1000000,"currency":"USD","price":3.5,"trader":"A. Trader","broker":"B. Broker"}'
+  -d '{"product":"IRS","counterparty":"Goldman Sachs","notional":1000000,"currency":"USD","price":3.5,"trader":"A. Trader","broker":"B. Broker"}'
 ```
 
 Update status (replace `<id>` with a real id from `GET /deals` or the POST response):
@@ -175,6 +188,8 @@ Builds `@otcflow/shared`, then `@otcflow/web` (`tsc -b` + `vite build` → `apps
 | ---------------------- | -------------------- |
 | `npm run dev:web`      | Vite dev server      |
 | `npm run dev:api`      | API with `tsx watch` |
+| `npm run db:migrate`   | Apply Prisma migrations |
+| `npm run db:seed`      | Seed users + sample deals |
 | `npm run build`        | `shared` then `web`  |
 | `npm run lint`         | ESLint               |
 | `npm run format`       | Prettier write       |

@@ -2,37 +2,38 @@ import type { Request, Response, NextFunction } from 'express';
 import { SimulatorResetBodySchema, SimulatorStartBodySchema } from '@otcflow/shared';
 import * as simulatorService from '../services/simulator.service.js';
 
-export function getStatus(_req: Request, res: Response, next: NextFunction): void {
+export async function getStatus(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    res.status(200).json(simulatorService.getSimulatorStatus());
+    const status = await simulatorService.getSimulatorStatus();
+    res.status(200).json(status);
   } catch (err) {
     next(err);
   }
 }
 
-export function start(req: Request, res: Response, next: NextFunction): void {
+export async function start(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const body = SimulatorStartBodySchema.parse(req.body ?? {});
-    const status = simulatorService.startSimulator(body);
+    const status = await simulatorService.startSimulator(body);
     res.status(200).json(status);
   } catch (err) {
     next(err);
   }
 }
 
-export function stop(_req: Request, res: Response, next: NextFunction): void {
+export async function stop(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const status = simulatorService.stopSimulator();
+    const status = await simulatorService.stopSimulator();
     res.status(200).json(status);
   } catch (err) {
     next(err);
   }
 }
 
-export function reset(req: Request, res: Response, next: NextFunction): void {
+export async function reset(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const body = SimulatorResetBodySchema.parse(req.body ?? {});
-    const status = simulatorService.resetSimulatorData(body.dealCount);
+    const status = await simulatorService.resetSimulatorData(body.dealCount);
     res.status(200).json(status);
   } catch (err) {
     next(err);

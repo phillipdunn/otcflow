@@ -7,22 +7,35 @@ import {
   type ProductType,
 } from '@otcflow/shared';
 
+/** OTC desk counterparties — bulge-bracket banks and macro / multi-strat hedge funds. */
 const COUNTERPARTIES = [
-  'Northbridge Asset Mgmt',
-  'Helvetia Capital',
-  'Tokyo Star Bank',
-  'Crescent Pension',
-  'Limehouse Trading',
-  'Baltic Reinsurance',
-  'Meridian Macro Fund',
-  'Atlas Structured Credit',
-  'Pacific Rim Securities',
-  'Sterling Grove LLP',
-  'Vanguard Street Partners',
-  'Orion Fixed Income',
-  'Summit Re Ltd',
-  'Harbour View Capital',
-  'Granite Hill Trading',
+  // Investment banks (earlier entries skew more common via pick())
+  'Goldman Sachs',
+  'J.P. Morgan',
+  'Morgan Stanley',
+  'Barclays',
+  'BNP Paribas',
+  'Deutsche Bank',
+  'Citigroup',
+  'Bank of America',
+  'UBS',
+  'HSBC',
+  'Nomura',
+  // Hedge funds
+  'Citadel',
+  'Millennium Management',
+  'Point72',
+  'Bridgewater Associates',
+  'Two Sigma',
+  'D. E. Shaw',
+  'Marshall Wace',
+  'Balyasny Asset Management',
+  'Man Group',
+  'Elliott Management',
+  'Rokos Capital',
+  'ExodusPoint Capital',
+  'Capula Investment Management',
+  'Schonfeld Strategic Advisors',
 ];
 
 const TRADERS = [
@@ -55,38 +68,56 @@ function pickStatus(): DealStatus {
   return 'CANCELLED';
 }
 
+/** Desk quotes: at most 3 sig figs (2 for |price| ≥ 10, e.g. bond clean). */
+function roundToSigFigs(n: number, sigFigs: number): number {
+  if (!Number.isFinite(n) || n === 0) return n;
+  const sign = Math.sign(n);
+  const abs = Math.abs(n);
+  const power = Math.floor(Math.log10(abs));
+  const scale = 10 ** (sigFigs - 1 - power);
+  return (sign * Math.round(abs * scale)) / scale;
+}
+
+function roundPrice(n: number): number {
+  return roundToSigFigs(n, Math.abs(n) >= 10 ? 2 : 3);
+}
+
 function priceForProduct(product: ProductType): number {
+  let raw: number;
   switch (product) {
     case 'IRS':
     case 'OIS':
-      return round(2 + Math.random() * 3.5, 4);
+      raw = 2 + Math.random() * 3.5;
+      break;
     case 'CDS':
     case 'CDX':
-      return round(20 + Math.random() * 80, 2);
+      raw = 20 + Math.random() * 80;
+      break;
     case 'FX_OPTION':
     case 'FX_SWAP':
     case 'FX_NDF':
-      return round(0.05 + Math.random() * 1.2, 4);
+      raw = 0.05 + Math.random() * 1.2;
+      break;
     case 'BOND':
-      return round(92 + Math.random() * 8, 3);
+      raw = 92 + Math.random() * 8;
+      break;
     case 'EQUITY_OPTION':
     case 'EQUITY_SWAP':
-      return round(1 + Math.random() * 25, 4);
+      raw = 1 + Math.random() * 25;
+      break;
     default:
-      return round(1 + Math.random() * 10, 4);
+      raw = 1 + Math.random() * 10;
   }
-}
-
-function round(n: number, decimals: number): number {
-  const f = 10 ** decimals;
-  return Math.round(n * f) / f;
+  return roundPrice(raw);
 }
 
 function randomNotional(): number {
-  const tiers = [500_000, 2_000_000, 10_000_000, 25_000_000, 50_000_000, 100_000_000, 250_000_000];
-  const base = pick(tiers);
-  const jitter = 0.85 + Math.random() * 0.3;
-  return Math.round(base * jitter);
+  /** Desk-style round notionals (USD equivalent; no odd lots). */
+  const tiers = [
+    1_000_000, 2_000_000, 5_000_000, 10_000_000, 15_000_000, 20_000_000, 25_000_000,
+    50_000_000, 75_000_000, 100_000_000, 150_000_000, 200_000_000, 250_000_000,
+  ];
+  return pick(tiers);
 }
 
 function randomPastIso(maxDaysAgo: number): string {
@@ -140,12 +171,11 @@ export function nextStatus(current: DealStatus): DealStatus {
   return pick(options);
 }
 
-export function jitterPrice(product: ProductType, current: number): number {
+export function jitterPrice(_product: ProductType, current: number): number {
   const pct = 0.002 + Math.random() * 0.015;
   const direction = Math.random() < 0.5 ? -1 : 1;
   const next = current * (1 + direction * pct);
-  const decimals = product === 'BOND' || product === 'CDS' || product === 'CDX' ? 2 : 4;
-  return round(Math.max(0.0001, next), decimals);
+  return roundPrice(Math.max(0.0001, next));
 }
 
 export type AmendableField = 'counterparty' | 'trader' | 'broker' | 'notional';

@@ -6,7 +6,7 @@ import {
   type DealEvent,
   type SimulatorStatus,
 } from '@otcflow/shared';
-import { dealStore } from '../data/deal.store.js';
+import { prisma } from '../db/prisma.js';
 import { getSimulatorUser } from '../data/user.store.js';
 import {
   amendValue,
@@ -17,16 +17,9 @@ import {
   jitterPrice,
   nextStatus,
   pickAmendField,
-  pickRandomDealIndex,
 } from '../simulator/dealGenerator.js';
-import {
-  clearAllAuditEvents,
-  recordDealAmended,
-  recordDealCreated,
-  recordDealPriceChanged,
-  recordDealStatusChanged,
-  seedAuditCreatedEventsFromDeals,
-} from './audit.service.js';
+import * as auditService from './audit.service.js';
+import * as dealRepo from '../repositories/deal.repository.js';
 import { broadcastDealEvent, getLastDealEventSequence, resetDealEventSequence } from '../ws/dealsWs.js';
 
 /** ~1 tick/s; ~35% of ticks are quiet (no event). */
@@ -38,6 +31,7 @@ let intervalMs = SIMULATOR_DEFAULT_INTERVAL_MS;
 let configuredDealCount = SIMULATOR_DEAL_COUNT_DEFAULT;
 let eventsEmitted = 0;
 let streamEpoch = 0;
+let tickInFlight = false;
 
 function bumpDeal(deal: Deal, patch: Partial<Deal>): Deal {
   return {
@@ -53,87 +47,118 @@ function persistAndBroadcast(event: Omit<DealEvent, 'sequenceNumber'>): void {
   eventsEmitted += 1;
 }
 
-function emitCreate(): void {
-  if (dealStore.count() >= SIMULATOR_DEAL_COUNT_MAX) return;
+async function emitCreate(): Promise<void> {
+  if ((await dealRepo.countDeals()) >= SIMULATOR_DEAL_COUNT_MAX) return;
   const user = getSimulatorUser();
   const now = new Date().toISOString();
   const deal = generateDeal({ createdAt: now, updatedAt: now, version: 1 });
-  dealStore.insert(deal);
-  recordDealCreated(deal, user);
-  persistAndBroadcast({ type: 'DEAL_CREATED', deal });
+
+  const persisted = await prisma.$transaction(async (tx) => {
+    const row = await dealRepo.insertDeal(deal, tx);
+    await auditService.recordDealCreated(row, user, tx);
+    return row;
+  });
+
+  persistAndBroadcast({ type: 'DEAL_CREATED', deal: persisted });
 }
 
-function emitStatusChange(): void {
-  const all = dealStore.getAll();
-  if (all.length === 0) return;
-  const existing = all[pickRandomDealIndex(all.length)]!;
+async function emitStatusChange(): Promise<void> {
+  const id = await dealRepo.findRandomDealId();
+  if (!id) return;
+  const existing = await dealRepo.findDealById(id);
+  if (!existing) return;
+
   const previousStatus = existing.status;
   const newStatus = nextStatus(previousStatus);
   if (newStatus === previousStatus) return;
 
   const user = getSimulatorUser();
   const updated = bumpDeal(existing, { status: newStatus });
-  if (!dealStore.replace(updated)) return;
 
-  recordDealStatusChanged(updated, user, previousStatus, newStatus);
-  persistAndBroadcast({ type: 'DEAL_STATUS_CHANGED', deal: updated });
+  const persisted = await prisma.$transaction(async (tx) => {
+    const row = await dealRepo.updateDeal(updated, tx);
+    await auditService.recordDealStatusChanged(row, user, previousStatus, newStatus, tx);
+    return row;
+  });
+
+  persistAndBroadcast({ type: 'DEAL_STATUS_CHANGED', deal: persisted });
 }
 
-function emitPriceChange(): void {
-  const all = dealStore.getAll();
-  if (all.length === 0) return;
-  const existing = all[pickRandomDealIndex(all.length)]!;
+async function emitPriceChange(): Promise<void> {
+  const id = await dealRepo.findRandomDealId();
+  if (!id) return;
+  const existing = await dealRepo.findDealById(id);
+  if (!existing) return;
+
   const previousPrice = String(existing.price);
   const newPrice = jitterPrice(existing.product, existing.price);
   if (newPrice === existing.price) return;
 
   const user = getSimulatorUser();
   const updated = bumpDeal(existing, { price: newPrice });
-  if (!dealStore.replace(updated)) return;
 
-  recordDealPriceChanged(updated, user, previousPrice, String(newPrice));
-  persistAndBroadcast({ type: 'DEAL_PRICE_CHANGED', deal: updated });
+  const persisted = await prisma.$transaction(async (tx) => {
+    const row = await dealRepo.updateDeal(updated, tx);
+    await auditService.recordDealPriceChanged(row, user, previousPrice, String(newPrice), tx);
+    return row;
+  });
+
+  persistAndBroadcast({ type: 'DEAL_PRICE_CHANGED', deal: persisted });
 }
 
-function emitAmend(): void {
-  const all = dealStore.getAll();
-  if (all.length === 0) return;
-  const existing = all[pickRandomDealIndex(all.length)]!;
+async function emitAmend(): Promise<void> {
+  const id = await dealRepo.findRandomDealId();
+  if (!id) return;
+  const existing = await dealRepo.findDealById(id);
+  if (!existing) return;
+
   const field = pickAmendField();
   const nextVal = amendValue(field, existing);
   const prevStr = formatAuditValue(field, existing[field]);
   const nextStr = formatAuditValue(field, nextVal);
-
   if (prevStr === nextStr) return;
 
   const user = getSimulatorUser();
   const updated = bumpDeal(existing, { [field]: nextVal } as Partial<Deal>);
-  if (!dealStore.replace(updated)) return;
 
-  recordDealAmended(updated, user, fieldLabel(field), prevStr, nextStr);
-  persistAndBroadcast({ type: 'DEAL_AMENDED', deal: updated });
+  const persisted = await prisma.$transaction(async (tx) => {
+    const row = await dealRepo.updateDeal(updated, tx);
+    await auditService.recordDealAmended(row, user, fieldLabel(field), prevStr, nextStr, tx);
+    return row;
+  });
+
+  persistAndBroadcast({ type: 'DEAL_AMENDED', deal: persisted });
 }
 
-function tick(): void {
-  if (!running) return;
-  if (Math.random() < TICK_SKIP_PROBABILITY) return;
+async function tickAsync(): Promise<void> {
+  if (!running || tickInFlight) return;
+  tickInFlight = true;
+  try {
+    if (Math.random() < TICK_SKIP_PROBABILITY) return;
 
-  const roll = Math.random();
-  if (roll < 0.12) {
-    emitCreate();
-  } else if (roll < 0.47) {
-    emitStatusChange();
-  } else if (roll < 0.77) {
-    emitPriceChange();
-  } else {
-    emitAmend();
+    const roll = Math.random();
+    if (roll < 0.12) {
+      await emitCreate();
+    } else if (roll < 0.47) {
+      await emitStatusChange();
+    } else if (roll < 0.77) {
+      await emitPriceChange();
+    } else {
+      await emitAmend();
+    }
+  } finally {
+    tickInFlight = false;
   }
 }
 
-export function getSimulatorStatus(): SimulatorStatus {
+function tick(): void {
+  void tickAsync().catch((err) => console.error('Simulator tick failed:', err));
+}
+
+export async function getSimulatorStatus(): Promise<SimulatorStatus> {
   return {
     running,
-    dealCount: dealStore.count(),
+    dealCount: await dealRepo.countDeals(),
     configuredDealCount,
     eventsEmitted,
     lastSequenceNumber: getLastDealEventSequence(),
@@ -142,19 +167,18 @@ export function getSimulatorStatus(): SimulatorStatus {
   };
 }
 
-export function startSimulator(options?: { intervalMs?: number }): SimulatorStatus {
+export async function startSimulator(options?: { intervalMs?: number }): Promise<SimulatorStatus> {
   if (options?.intervalMs !== undefined) {
     intervalMs = options.intervalMs;
   }
-  if (running) {
-    return getSimulatorStatus();
+  if (!running) {
+    running = true;
+    timer = setInterval(tick, intervalMs);
   }
-  running = true;
-  timer = setInterval(tick, intervalMs);
   return getSimulatorStatus();
 }
 
-export function stopSimulator(): SimulatorStatus {
+export async function stopSimulator(): Promise<SimulatorStatus> {
   running = false;
   if (timer !== null) {
     clearInterval(timer);
@@ -163,20 +187,24 @@ export function stopSimulator(): SimulatorStatus {
   return getSimulatorStatus();
 }
 
-export function resetSimulatorData(dealCount = SIMULATOR_DEAL_COUNT_DEFAULT): SimulatorStatus {
-  stopSimulator();
+export async function resetSimulatorData(dealCount = SIMULATOR_DEAL_COUNT_DEFAULT): Promise<SimulatorStatus> {
+  await stopSimulator();
   const count = Math.min(Math.max(dealCount, 500), SIMULATOR_DEAL_COUNT_MAX);
   configuredDealCount = count;
 
-  clearAllAuditEvents();
   const deals = generateDeals(count);
-  dealStore.replaceAll(deals);
+  const simulatorUser = getSimulatorUser();
+
+  await prisma.$transaction(async (tx) => {
+    await auditService.clearAllAuditEvents(tx);
+    await dealRepo.deleteAllDeals(tx);
+    await dealRepo.createManyDeals(deals, tx);
+    await auditService.seedAuditCreatedEventsFromDeals(deals, simulatorUser, tx);
+  });
+
   resetDealEventSequence(0);
   eventsEmitted = 0;
   streamEpoch += 1;
-
-  const simulatorUser = getSimulatorUser();
-  seedAuditCreatedEventsFromDeals(deals, simulatorUser);
 
   return getSimulatorStatus();
 }

@@ -10,6 +10,9 @@
     "dev:web": "npm run dev -w @otcflow/web",
     "dev:api": "npm run dev -w @otcflow/api",
     "build": "npm run build -w @otcflow/shared && npm run build -w @otcflow/web",
+    "db:generate": "npm run db:generate -w @otcflow/api",
+    "db:migrate": "npm run db:migrate -w @otcflow/api",
+    "db:seed": "npm run db:seed -w @otcflow/api",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
