@@ -21,8 +21,9 @@ const headerSelectSx = {
 };
 
 const dockSelectSx = {
-  minWidth: { xs: '100%', sm: 220 },
-  flexShrink: 0,
+  minWidth: { xs: 160, sm: 200 },
+  flexShrink: 1,
+  maxWidth: { xs: 220, sm: 280 },
 };
 
 export interface AppBarUserSelectProps {

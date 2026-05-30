@@ -57,8 +57,7 @@ export function BlotterSimulatorControls() {
     <Stack
       direction="row"
       spacing={1}
-      alignItems="center"
-      sx={{ flexWrap: 'nowrap', flexShrink: 0 }}
+      sx={{ flexWrap: 'nowrap', flexShrink: 0, alignItems: 'center' }}
     >
       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
         Simulator

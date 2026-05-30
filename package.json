@@ -13,6 +13,11 @@
     "db:generate": "npm run db:generate -w @otcflow/api",
     "db:migrate": "npm run db:migrate -w @otcflow/api",
     "db:seed": "npm run db:seed -w @otcflow/api",
+    "docker:up": "docker compose up --build",
+    "docker:up:detached": "docker compose up --build -d",
+    "docker:down": "docker compose down",
+    "docker:migrate": "docker compose run --rm --entrypoint npx api prisma migrate deploy",
+    "docker:seed": "docker compose run --rm --entrypoint npx api prisma db seed",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

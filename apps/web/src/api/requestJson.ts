@@ -21,6 +21,10 @@ export function getApiBaseUrl(): string {
 
 /** WebSocket URL for deal events (same host as REST, path `/ws/deals`). */
 export function getDealsWebSocketUrl(): string {
+  const wsRaw = import.meta.env.VITE_WS_URL;
+  if (typeof wsRaw === 'string' && wsRaw.trim() !== '') {
+    return wsRaw.trim();
+  }
   const base = getApiBaseUrl();
   const url = new URL(base);
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';

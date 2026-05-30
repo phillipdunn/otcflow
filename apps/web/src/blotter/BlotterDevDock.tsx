@@ -2,12 +2,11 @@ import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
 import { AppBarUserSelect } from './AppBarUserSelect.js';
 import { BlotterSimulatorControls } from './BlotterSimulatorControls.js';
 
 /** Reserve space so the grid is not covered by the fixed dock. */
-export const BLOTTER_DEV_DOCK_HEIGHT_PX = 76;
+export const BLOTTER_DEV_DOCK_HEIGHT_PX = 56;
 
 /**
  * Sticky demo/dev controls (Phase 6 acting-as + Phase 8 simulator).
@@ -33,28 +32,25 @@ export function BlotterDevDock() {
         bgcolor: 'background.paper',
       }}
     >
-      <Stack spacing={0.75}>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 0.5 }}>
-          <Chip label="Demo only" size="small" color="warning" variant="outlined" sx={{ height: 22 }} />
-          <Typography variant="caption" color="text.secondary">
-            Acting-as and simulator are for local development — not production UI.
-          </Typography>
-        </Stack>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { sm: 'center' },
-            justifyContent: 'space-between',
-            gap: 1.5,
-          }}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'stretch', sm: 'center' },
+          justifyContent: 'space-between',
+          gap: 1,
+        }}
+      >
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ flexWrap: 'nowrap', alignItems: 'center', minWidth: 0 }}
         >
+          <Chip label="Demo only" size="small" color="warning" variant="outlined" sx={{ height: 22, flexShrink: 0 }} />
           <AppBarUserSelect variant="dock" />
-          <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
-            <BlotterSimulatorControls />
-          </Box>
-        </Box>
-      </Stack>
+        </Stack>
+        <BlotterSimulatorControls />
+      </Box>
     </Paper>
   );
 }

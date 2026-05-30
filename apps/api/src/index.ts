@@ -13,9 +13,12 @@ import { attachDealsWebSocket } from './ws/dealsWs.js';
 
 const app = express();
 
+const port = Number(process.env.PORT) || 3000;
+const corsOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
+
 app.use(
   cors({
-    origin: 'http://localhost:5173',
+    origin: corsOrigin,
     methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'x-user-id'],
   })
@@ -56,7 +59,6 @@ app.use(simulatorRouter);
 
 app.use(errorMiddleware);
 
-const port = Number(process.env.PORT) || 3000;
 const httpServer = createServer(app);
 
 attachDealsWebSocket(httpServer);

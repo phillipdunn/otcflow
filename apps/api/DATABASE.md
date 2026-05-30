@@ -2,6 +2,8 @@
 
 OTCFlow uses **Prisma** against a local **PostgreSQL** database. Deals and audit events persist across API restarts; simulator control state (running/stopped) stays in memory.
 
+**Docker (Phase 10):** skip local Postgres install — use `npm run docker:up` from the repo root (see root [README](../../README.md#docker-production-like-local-stack)). Migrations and `DATABASE_URL` are handled by Compose.
+
 ## Why Prisma (not Drizzle)
 
 | | **Prisma** (chosen) | Drizzle |

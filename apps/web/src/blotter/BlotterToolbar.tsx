@@ -111,8 +111,7 @@ export function BlotterToolbar() {
             <Stack
               direction="row"
               spacing={1}
-              alignItems="center"
-              sx={{ flexWrap: 'nowrap', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}
+              sx={{ flexWrap: 'nowrap', justifyContent: { xs: 'flex-start', md: 'flex-end' }, alignItems: 'center' }}
             >
               <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
                 Sort
