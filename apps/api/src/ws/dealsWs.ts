@@ -1,5 +1,5 @@
 import type { Server } from 'node:http';
-import type { DealEvent } from '@otcflow/shared';
+import type { DomainDealEvent } from '@otcflow/shared';
 import { DealEventSchema } from '@otcflow/shared';
 import { WebSocketServer, WebSocket as WsSocket } from 'ws';
 
@@ -33,11 +33,21 @@ export function attachDealsWebSocket(server: Server): WebSocketServer {
   return wss;
 }
 
-type DealEventInput = Omit<DealEvent, 'sequenceNumber'> & { sequenceNumber?: number };
+type DealEventInput = Omit<ReturnType<typeof DealEventSchema.parse>, 'sequenceNumber'> & {
+  sequenceNumber?: number;
+};
 
-/** Broadcast a validated event to all connected browsers. Assigns sequenceNumber if omitted. */
-export function broadcastDealEvent(event: DealEventInput): DealEvent {
-  const sequenceNumber = event.sequenceNumber ?? ++nextSequenceNumber;
+/**
+ * Push a deal event to all connected WebSocket clients.
+ * Called by the event-bus → WebSocket bridge after sequenceNumber assignment.
+ */
+export function broadcastDealEventToClients(event: DomainDealEvent | DealEventInput): ReturnType<
+  typeof DealEventSchema.parse
+> {
+  const sequenceNumber =
+    'sequenceNumber' in event && event.sequenceNumber !== undefined
+      ? event.sequenceNumber
+      : ++nextSequenceNumber;
   const payload = DealEventSchema.parse({ ...event, sequenceNumber });
   const message = JSON.stringify(payload);
   for (const socket of clients) {

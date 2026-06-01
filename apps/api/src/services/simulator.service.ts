@@ -3,7 +3,7 @@ import {
   SIMULATOR_DEAL_COUNT_MAX,
   SIMULATOR_DEFAULT_INTERVAL_MS,
   type Deal,
-  type DealEvent,
+  type DomainDealEvent,
   type SimulatorStatus,
 } from '@otcflow/shared';
 import { prisma } from '../db/prisma.js';
@@ -20,7 +20,8 @@ import {
 } from '../simulator/dealGenerator.js';
 import * as auditService from './audit.service.js';
 import * as dealRepo from '../repositories/deal.repository.js';
-import { broadcastDealEvent, getLastDealEventSequence, resetDealEventSequence } from '../ws/dealsWs.js';
+import { dealEventBus } from '../events/dealEventBus.js';
+import { getLastDealEventSequence, resetDealEventSequence } from '../ws/dealsWs.js';
 
 /** ~1 tick/s; ~35% of ticks are quiet (no event). */
 const TICK_SKIP_PROBABILITY = 0.35;
@@ -42,8 +43,8 @@ function bumpDeal(deal: Deal, patch: Partial<Deal>): Deal {
   };
 }
 
-function persistAndBroadcast(event: Omit<DealEvent, 'sequenceNumber'>): void {
-  broadcastDealEvent(event);
+function publishDomainEvent(event: DomainDealEvent): void {
+  dealEventBus.publish(event);
   eventsEmitted += 1;
 }
 
@@ -59,7 +60,7 @@ async function emitCreate(): Promise<void> {
     return row;
   });
 
-  persistAndBroadcast({ type: 'DEAL_CREATED', deal: persisted });
+  publishDomainEvent({ type: 'DEAL_CREATED', deal: persisted });
 }
 
 async function emitStatusChange(): Promise<void> {
@@ -81,7 +82,7 @@ async function emitStatusChange(): Promise<void> {
     return row;
   });
 
-  persistAndBroadcast({ type: 'DEAL_STATUS_CHANGED', deal: persisted });
+  publishDomainEvent({ type: 'DEAL_STATUS_CHANGED', deal: persisted });
 }
 
 async function emitPriceChange(): Promise<void> {
@@ -103,7 +104,7 @@ async function emitPriceChange(): Promise<void> {
     return row;
   });
 
-  persistAndBroadcast({ type: 'DEAL_PRICE_CHANGED', deal: persisted });
+  publishDomainEvent({ type: 'DEAL_PRICE_CHANGED', deal: persisted });
 }
 
 async function emitAmend(): Promise<void> {
@@ -127,7 +128,7 @@ async function emitAmend(): Promise<void> {
     return row;
   });
 
-  persistAndBroadcast({ type: 'DEAL_AMENDED', deal: persisted });
+  publishDomainEvent({ type: 'DEAL_AMENDED', deal: persisted });
 }
 
 async function tickAsync(): Promise<void> {

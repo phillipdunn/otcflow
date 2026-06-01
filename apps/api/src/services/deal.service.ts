@@ -5,7 +5,7 @@ import { HttpError } from '../middleware/error.middleware.js';
 import type { CreateDealBody } from '../validation/deal.validation.js';
 import * as auditService from './audit.service.js';
 import * as dealRepo from '../repositories/deal.repository.js';
-import { broadcastDealEvent } from '../ws/dealsWs.js';
+import { dealEventBus } from '../events/dealEventBus.js';
 
 export async function listDeals(): Promise<Deal[]> {
   return dealRepo.listDeals();
@@ -43,7 +43,7 @@ export async function createDeal(body: CreateDealBody, user: User): Promise<Deal
     return row;
   });
 
-  broadcastDealEvent({ type: 'DEAL_CREATED', deal: persisted });
+  dealEventBus.publish({ type: 'DEAL_CREATED', deal: persisted });
   return persisted;
 }
 
@@ -66,6 +66,6 @@ export async function updateDealStatus(id: string, status: DealStatus, user: Use
     return row;
   });
 
-  broadcastDealEvent({ type: 'DEAL_STATUS_CHANGED', deal: persisted });
+  dealEventBus.publish({ type: 'DEAL_STATUS_CHANGED', deal: persisted });
   return persisted;
 }

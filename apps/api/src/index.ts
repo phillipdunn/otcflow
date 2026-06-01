@@ -4,12 +4,15 @@ import { createApp } from './app.js';
 import { initUserCache } from './data/user.store.js';
 import { prisma } from './db/prisma.js';
 import { attachDealsWebSocket } from './ws/dealsWs.js';
+import { dealEventBus } from './events/dealEventBus.js';
+import { wireDealEventBusToWebSocket } from './events/wireDealEventBusToWebSocket.js';
 
 const app = createApp();
 const port = Number(process.env.PORT) || 3000;
 const httpServer = createServer(app);
 
 attachDealsWebSocket(httpServer);
+wireDealEventBusToWebSocket(dealEventBus);
 
 async function bootstrap(): Promise<void> {
   await prisma.$connect();

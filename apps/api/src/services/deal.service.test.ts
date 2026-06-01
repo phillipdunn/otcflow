@@ -3,7 +3,7 @@ import { HttpError } from '../middleware/error.middleware.js';
 import * as auditService from './audit.service.js';
 import * as dealRepo from '../repositories/deal.repository.js';
 import { prisma } from '../db/prisma.js';
-import { broadcastDealEvent } from '../ws/dealsWs.js';
+import { dealEventBus } from '../events/dealEventBus.js';
 import { createDeal, getDealById, updateDealStatus } from './deal.service.js';
 import { makeDeal, testBrokerUser, testTraderUser, validCreateDealBody } from '../test/fixtures.js';
 
@@ -40,7 +40,7 @@ test('getDealById throws 404 when the deal is missing', async () => {
   await expect(getDealById('missing')).rejects.toMatchObject({ statusCode: 404 });
 });
 
-test('createDeal persists at version 1, records audit, and broadcasts', async () => {
+test('createDeal persists at version 1, records audit, and publishes domain event', async () => {
   const persisted = makeDeal({ id: 'generated-deal-id', version: 1 });
   vi.mocked(dealRepo.insertDeal).mockResolvedValue(persisted);
 
@@ -53,7 +53,7 @@ test('createDeal persists at version 1, records audit, and broadcasts', async ()
     expect.anything()
   );
   expect(auditService.recordDealCreated).toHaveBeenCalledWith(persisted, testBrokerUser, expect.anything());
-  expect(broadcastDealEvent).toHaveBeenCalledWith({ type: 'DEAL_CREATED', deal: persisted });
+  expect(dealEventBus.publish).toHaveBeenCalledWith({ type: 'DEAL_CREATED', deal: persisted });
 });
 
 test('createDeal honours an explicit initial status', async () => {
@@ -68,7 +68,7 @@ test('createDeal honours an explicit initial status', async () => {
   );
 });
 
-test('updateDealStatus increments version, records audit, and broadcasts', async () => {
+test('updateDealStatus increments version, records audit, and publishes domain event', async () => {
   const existing = makeDeal({ id: 'deal-1', status: 'NEW', version: 1 });
   const updated = makeDeal({ id: 'deal-1', status: 'PENDING', version: 2 });
   vi.mocked(dealRepo.findDealById).mockResolvedValue(existing);
@@ -88,7 +88,7 @@ test('updateDealStatus increments version, records audit, and broadcasts', async
     'PENDING',
     expect.anything()
   );
-  expect(broadcastDealEvent).toHaveBeenCalledWith({ type: 'DEAL_STATUS_CHANGED', deal: updated });
+  expect(dealEventBus.publish).toHaveBeenCalledWith({ type: 'DEAL_STATUS_CHANGED', deal: updated });
 });
 
 test('updateDealStatus throws 404 when the deal is missing', async () => {

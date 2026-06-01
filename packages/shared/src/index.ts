@@ -16,6 +16,21 @@ export {
 } from './deal.js';
 
 export {
+  DOMAIN_DEAL_EVENT_TYPES,
+  DomainDealAmendedEventSchema,
+  DomainDealCreatedEventSchema,
+  DomainDealEventSchema,
+  DomainDealPriceChangedEventSchema,
+  DomainDealStatusChangedEventSchema,
+  type DomainDealAmendedEvent,
+  type DomainDealCreatedEvent,
+  type DomainDealEvent,
+  type DomainDealEventType,
+  type DomainDealPriceChangedEvent,
+  type DomainDealStatusChangedEvent,
+} from './domainDealEvents.js';
+
+export {
   DealAmendedEventSchema,
   DealCreatedEventSchema,
   DealEventSchema,
