@@ -23,6 +23,8 @@ services:
       interval: 3s
       timeout: 5s
       retries: 10
+    ports:
+      - '${POSTGRES_HOST_PORT:-5433}:5432'
 
   api:
     build:

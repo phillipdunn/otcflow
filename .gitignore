@@ -20,3 +20,5 @@ npm-debug.log*
 # Local phase notes + Notion export (personal; not committed)
 docs/phases/
 scripts/build-notion-phases-doc.mjs
+test-results/ # if not already ignored
+test-results/ # if not already ignored
