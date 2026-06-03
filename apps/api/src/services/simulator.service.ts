@@ -22,6 +22,7 @@ import * as auditService from './audit.service.js';
 import * as dealRepo from '../repositories/deal.repository.js';
 import { dealEventBus } from '../events/dealEventBus.js';
 import { getLastDealEventSequence, resetDealEventSequence } from '../ws/dealsWs.js';
+import { logger } from '../observability/logger.js';
 
 /** ~1 tick/s; ~35% of ticks are quiet (no event). */
 const TICK_SKIP_PROBABILITY = 0.35;
@@ -153,7 +154,7 @@ async function tickAsync(): Promise<void> {
 }
 
 function tick(): void {
-  void tickAsync().catch((err) => console.error('Simulator tick failed:', err));
+  void tickAsync().catch((err) => logger.error('simulator_tick_failed', { error: String(err) }));
 }
 
 export async function getSimulatorStatus(): Promise<SimulatorStatus> {
@@ -175,6 +176,7 @@ export async function startSimulator(options?: { intervalMs?: number }): Promise
   if (!running) {
     running = true;
     timer = setInterval(tick, intervalMs);
+    logger.info('simulator_started', { intervalMs });
   }
   return getSimulatorStatus();
 }
@@ -184,6 +186,7 @@ export async function stopSimulator(): Promise<SimulatorStatus> {
   if (timer !== null) {
     clearInterval(timer);
     timer = null;
+    logger.info('simulator_stopped');
   }
   return getSimulatorStatus();
 }

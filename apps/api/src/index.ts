@@ -8,37 +8,51 @@ import { dealEventBus } from './events/dealEventBus.js';
 import { wireDealEventBusToWebSocket } from './events/wireDealEventBusToWebSocket.js';
 import { wireDealEventBusToGraphQL } from './graphql/wireDealEventBusToGraphQL.js';
 import { attachGraphQLSubscriptions } from './graphql/attachGraphQLSubscriptions.js';
+import { logger } from './observability/logger.js';
+import {
+  registerGracefulShutdown,
+  registerProcessErrorHandlers,
+} from './observability/gracefulShutdown.js';
+
+registerProcessErrorHandlers();
 
 const app = createApp();
 const port = Number(process.env.PORT) || 3000;
 const httpServer = createServer(app);
 
-attachDealsWebSocket(httpServer);
-attachGraphQLSubscriptions(httpServer);
+const dealsWss = attachDealsWebSocket(httpServer);
+const graphQLWss = attachGraphQLSubscriptions(httpServer);
 wireDealEventBusToWebSocket(dealEventBus);
 wireDealEventBusToGraphQL(dealEventBus);
 
+registerGracefulShutdown({ httpServer, dealsWss, graphQLWss });
+
 async function bootstrap(): Promise<void> {
+  logger.info('app_starting', { port });
+
   await prisma.$connect();
+  logger.info('database_connected');
+
   await initUserCache();
 
   httpServer.listen(port, () => {
-    console.log(`OTCFlow API listening on http://localhost:${port}`);
-    console.log(`Deal events WebSocket: ws://localhost:${port}/ws/deals`);
-    console.log(`GraphQL HTTP: http://localhost:${port}/graphql`);
-    console.log(`GraphQL subscriptions: ws://localhost:${port}/graphql`);
-    console.log('PostgreSQL connected (Prisma)');
+    logger.info('app_listening', {
+      port,
+      httpUrl: `http://localhost:${port}`,
+      dealsWebSocket: `ws://localhost:${port}/ws/deals`,
+      graphQLHttp: `http://localhost:${port}/graphql`,
+      graphQLWebSocket: `ws://localhost:${port}/graphql`,
+      healthLive: `http://localhost:${port}/health/live`,
+      healthReady: `http://localhost:${port}/health/ready`,
+      metrics: `http://localhost:${port}/metrics`,
+    });
   });
 }
 
 bootstrap().catch((err) => {
-  console.error('Failed to start API:', err);
+  logger.error('app_start_failed', {
+    error: err instanceof Error ? err.message : String(err),
+    stack: err instanceof Error ? err.stack : undefined,
+  });
   process.exit(1);
-});
-
-process.on('SIGINT', () => {
-  void prisma.$disconnect().finally(() => process.exit(0));
-});
-process.on('SIGTERM', () => {
-  void prisma.$disconnect().finally(() => process.exit(0));
 });

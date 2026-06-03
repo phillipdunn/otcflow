@@ -6,6 +6,7 @@ vi.mock('../ws/dealsWs.js', () => ({
   attachDealsWebSocket: vi.fn(),
   resetDealEventSequence: vi.fn(),
   getLastDealEventSequence: vi.fn(() => 0),
+  getActiveDealWebSocketClients: vi.fn(() => 0),
 }));
 
 vi.mock('../events/dealEventBus.js', () => ({

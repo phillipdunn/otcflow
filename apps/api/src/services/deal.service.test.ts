@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { beforeEach, expect, test, vi } from 'vitest';
 import { HttpError } from '../middleware/error.middleware.js';
 import * as auditService from './audit.service.js';
@@ -20,8 +21,10 @@ vi.mock('node:crypto', () => ({
 }));
 
 beforeEach(() => {
-  vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
-    const tx = {} as Parameters<typeof fn>[0];
+  vi.mocked(prisma.$transaction).mockImplementation(async (
+    fn: (tx: Prisma.TransactionClient) => Promise<unknown>
+  ) => {
+    const tx = {} as Prisma.TransactionClient;
     return fn(tx);
   });
 });

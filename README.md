@@ -12,7 +12,7 @@ This README describes **what is in the repo today**. For **what each part means 
 | **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 5 blotter**: **MUI** + **AG Grid**; **Phase 6**: **Acting as** user in app bar, **`x-user-id`** on mutations. **Phase 7**: **Audit History** in deal **`Drawer`** (**`DealAuditHistory`**, TanStack Query **`['deals', id, 'auditEvents']`**). **Phase 4** retained: TanStack Query + REST, **`useDealEventsWebSocket`** on **`/ws/deals`** with version-guarded cache merge and reconnect backoff. |
 | **`apps/api`**        | Express on **3000** + **`/ws/deals`**. **PostgreSQL** via **Prisma** (deals + audit persist). REST unchanged; simulator + WS as Phase 8. Native dev or **Docker Compose** (Phase 10). See [apps/api/DATABASE.md](apps/api/DATABASE.md). |
 | **`packages/shared`** | **`Deal`**, **`DealEvent`**, **`AuditEvent`** (+ Zod), **`User`** / **`MOCK_USERS`**, **`HealthResponseSchema`**. Builds to `dist/` on `npm install` (`prepare`). |
-| **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package. **Docker Compose** (Phase 10): `web` + `api` + `postgres`. **GitHub Actions CI** (Phase 14): lint, typecheck, unit + integration tests, build on PRs and `main`. |
+| **Tooling**           | ESLint, Prettier, TypeScript, Docker Compose, GitHub Actions CI. **Observability (Phase 15):** structured logs, request IDs, `/health/live`, `/health/ready`, `/metrics`, graceful shutdown. |
 
 ## Repository layout
 
@@ -137,10 +137,11 @@ Runs on `ubuntu-latest` with a **Postgres 16** service container for integration
 | Step | Command | What it checks |
 | ---- | ------- | -------------- |
 | Install | `npm ci` | Lockfile + workspace install; `@otcflow/shared` builds via `prepare` |
+| Prisma client | `db:generate` | Required before `tsc` can resolve `@prisma/client` types |
 | Lint | `npm run lint` | ESLint across the monorepo |
-| Typecheck | `npm run typecheck` | `tsc` in `shared`, `api`, and `web` |
+| Typecheck | `npm run typecheck` | `tsc` in `shared`, `api`, and `web` (`api` also runs `prisma generate`) |
 | Unit tests | `npm run test:unit` | API + web Vitest (mocked / MSW) |
-| DB migrate | `db:generate` + `db:migrate:deploy` | Prisma schema applies to CI Postgres |
+| DB migrate | `db:migrate:deploy` | Prisma schema applies to CI Postgres |
 | Integration tests | `npm run test:integration` | Supertest + real Postgres (REST + GraphQL) |
 | Build | `npm run build` | `shared` + production web bundle |
 
@@ -154,6 +155,17 @@ Run from the GitHub **Actions** tab → **E2E** → **Run workflow**. Same Postg
 
 ### Run the same checks locally
 
+**One command (same order as GitHub CI):**
+
+```bash
+npm ci
+npm run ci
+```
+
+Requires Postgres for integration tests (see below). Without a database, use **`npm run ci:fast`** (lint, typecheck, unit tests, build only).
+
+**Step by step:**
+
 ```bash
 npm ci
 npm run lint
@@ -163,6 +175,12 @@ npm run build
 ```
 
 Integration tests need Postgres listening (native or `docker compose up postgres`). Set `TEST_DATABASE_URL` if not using the default `127.0.0.1:5433` from Docker Compose.
+
+### Branch workflow (phases and PRs)
+
+Use a **feature branch per phase** (or per fix), open a **PR into `main`**, and let CI run on the PR before merge. That is the default way to ship work and see checks go green.
+
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for branch naming, `npm run ci` / `ci:fast`, and optional branch protection on `main`.
 
 ## Local development
 
@@ -182,12 +200,15 @@ Optional: set **`VITE_API_URL`** and optionally **`VITE_WS_URL`** in **`apps/web
 npm run dev:api
 ```
 
-Expect: `PostgreSQL connected (Prisma)`, `OTCFlow API listening on http://localhost:3000`, and **`Deal events WebSocket: ws://localhost:3000/ws/deals`** (override with `PORT` if needed).
+Expect structured JSON logs on stdout, including **`app_listening`** with URLs for health, metrics, GraphQL, and WebSockets.
 
 | Method & path / socket    | Purpose                                                                                                                                                                                             |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /`                   | Short JSON describing the service and main routes.                                                                                                                                                  |
-| `GET /health`             | Liveness; body validated with `HealthResponseSchema` from shared.                                                                                                                                   |
+| `GET /health/live`        | **Liveness** — process is up (no DB check). Use for “is the Node process running?”.                                                                                                                |
+| `GET /health/ready`       | **Readiness** — **503** if Postgres is unreachable; **200** when DB responds. Use before routing traffic.                                                                                          |
+| `GET /health`             | Legacy readiness check; same DB semantics as **`/health/ready`**; body matches **`HealthResponseSchema`** when ready.                                                                               |
+| `GET /metrics`            | JSON ops snapshot: uptime, request counts, errors, WebSocket clients, simulator status.                                                                                                             |
 | `GET /deals`              | All deals (seed rows plus any created in this process).                                                                                                                                             |
 | `GET /deals/:id`          | One deal; **404** if missing.                                                                                                                                                                       |
 | `GET /deals/:id/events`   | Audit history for a deal (**`AuditEvent[]`**, newest first); **404** if deal missing.                                                                                                              |
@@ -198,10 +219,51 @@ Expect: `PostgreSQL connected (Prisma)`, `OTCFlow API listening on http://localh
 Example requests with **curl** (after `npm run dev:api`):
 
 ```bash
-curl -s http://localhost:3000/health
+curl -s http://localhost:3000/health/ready
+curl -s http://localhost:3000/metrics
 curl -s http://localhost:3000/deals
 curl -s http://localhost:3000/deals/api-seed-01
 ```
+
+Every API response includes **`X-Request-Id`** (or send your own with the same header for correlation). Error JSON bodies include **`requestId`** when available.
+
+## Operations and debugging (local)
+
+### Health checks
+
+| Endpoint | Pass | Fail |
+| -------- | ---- | ---- |
+| `/health/live` | **200** — API process running | n/a (if this fails, the process is down) |
+| `/health/ready` | **200** — Postgres reachable | **503** — DB down or wrong `DATABASE_URL` |
+| `/health` | **200** — same as ready (legacy) | **503** — DB not ready |
+
+Kubernetes-style mapping: **liveness** → `/health/live`; **readiness** → `/health/ready`.
+
+### Metrics
+
+`GET /metrics` returns JSON (not Prometheus format yet), for example:
+
+- `uptimeSeconds`, `totalRequests`, `requestsByRoute`, `errorCount`
+- `activeWebSocketClients`, `activeDealWebSocketClients`, `activeGraphQLSubscriptionClients`
+- `simulator` — same shape as `GET /simulator/status`
+
+### Structured logs
+
+Logs are one JSON object per line on stdout, e.g. `http_request`, `database_connected`, `simulator_started`, `deals_websocket_client_connected`. Filter by `requestId` when debugging a single call.
+
+### Common local issues
+
+| Symptom | Likely cause | What to try |
+| ------- | ------------- | ----------- |
+| `/health/ready` **503** | Postgres not running or wrong port | Start DB; check `apps/api/.env` `DATABASE_URL` (Compose often **5433** on host) |
+| Blotter empty | No seed data | `npm run db:seed` or `npm run docker:seed` |
+| Integration tests fail | DB URL mismatch | `export TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/otcflow` |
+| WebSocket not updating | API not running or wrong `VITE_WS_URL` | `npm run dev:api`; check browser network tab for `ws://…/ws/deals` |
+| CI fails on integration | No Postgres in CI locally | Run `npm run ci` only when DB is up, or use `npm run ci:fast` while iterating |
+
+### Graceful shutdown
+
+`SIGINT` / `SIGTERM` stop the simulator, close WebSocket servers, stop HTTP, then disconnect Prisma (see `apps/api/src/observability/gracefulShutdown.ts`).
 
 Create a deal (`product` must be a valid `ProductType` from shared, e.g. `IRS`; `currency` must match `CurrencySchema`):
 
@@ -300,6 +362,8 @@ Builds `@otcflow/shared`, then `@otcflow/web` (`tsc -b` + `vite build` → `apps
 | `npm run build`        | `shared` then `web`  |
 | `npm run lint`         | ESLint               |
 | `npm run typecheck`    | TypeScript (`shared`, `api`, `web`) |
+| `npm run ci`           | Full local CI (lint → typecheck → unit → migrate → integration → build; needs Postgres) |
+| `npm run ci:fast`      | CI without DB (lint → typecheck → unit → build) |
 | `npm run test`         | Unit + integration tests |
 | `npm run test:unit`    | API + web Vitest unit tests |
 | `npm run test:integration` | API Supertest + Postgres |

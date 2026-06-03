@@ -48,6 +48,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma client
+        run: npm run db:generate -w @otcflow/api
+
       - name: Lint
         run: npm run lint
 
@@ -58,9 +61,7 @@ jobs:
         run: npm run test:unit
 
       - name: Prepare database
-        run: |
-          npm run db:generate -w @otcflow/api
-          npm run db:migrate:deploy -w @otcflow/api
+        run: npm run db:migrate:deploy -w @otcflow/api
 
       - name: Integration tests
         run: npm run test:integration
