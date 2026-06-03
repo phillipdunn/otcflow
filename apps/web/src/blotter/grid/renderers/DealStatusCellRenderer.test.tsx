@@ -1,10 +1,13 @@
 import { expect, test } from 'vitest';
 import { screen } from '@testing-library/react';
+import type { CustomCellRendererProps } from 'ag-grid-react';
+import type { Deal } from '@otcflow/shared';
 import { DealStatusCellRenderer } from './DealStatusCellRenderer.js';
 import { renderWithProviders } from '../../../test/testUtils.js';
 
-function renderStatus(status: string) {
-  renderWithProviders(<DealStatusCellRenderer value={status as never} />);
+function renderStatus(status: Deal['status']) {
+  const props = { value: status } as CustomCellRendererProps<Deal, Deal['status']>;
+  renderWithProviders(<DealStatusCellRenderer {...props} />);
 }
 
 test('DealStatusCellRenderer renders a chip with the status label', () => {

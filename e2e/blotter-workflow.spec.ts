@@ -25,13 +25,15 @@ test('e2e: create deal, update status, verify audit history with acting user', a
   await dealRow.click();
 
   await expect(page.getByRole('heading', { name: 'Trade' })).toBeVisible();
-  await expect(page.getByText(counterparty)).toBeVisible();
 
-  await page.getByRole('button', { name: 'PENDING', exact: true }).click();
-  await expect(page.getByText('PENDING').first()).toBeVisible({ timeout: 10_000 });
+  const tradePanel = page.getByRole('dialog');
+  await expect(tradePanel.getByText(counterparty)).toBeVisible();
 
-  await expect(page.getByText('Audit history')).toBeVisible();
-  await expect(page.getByText('M. Okonkwo')).toBeVisible();
-  await expect(page.getByText(/Status changed from NEW to PENDING/)).toBeVisible();
-  await expect(page.getByText(/Trade created with status NEW/)).toBeVisible();
+  await tradePanel.getByRole('button', { name: 'PENDING', exact: true }).click();
+  await expect(tradePanel.getByText('PENDING')).toBeVisible({ timeout: 10_000 });
+
+  await expect(tradePanel.getByText('Audit history')).toBeVisible();
+  await expect(tradePanel.getByText('M. Okonkwo')).toBeVisible();
+  await expect(tradePanel.getByText(/Status changed from NEW to PENDING/)).toBeVisible();
+  await expect(tradePanel.getByText(/Trade created with status NEW/)).toBeVisible();
 });
