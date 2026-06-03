@@ -4,6 +4,11 @@ import { useServer, type Extra } from 'graphql-ws/use/ws';
 import { WebSocketServer } from 'ws';
 import { graphQLSchema } from './schema.js';
 import { resolveGraphQLUser } from './context.js';
+import { logger } from '../observability/logger.js';
+import {
+  onGraphQLSubscriptionClientConnected,
+  onGraphQLSubscriptionClientDisconnected,
+} from './graphqlWsMetrics.js';
 
 /**
  * GraphQL subscriptions over WebSocket at `ws://host/graphql` (graphql-ws protocol).
@@ -12,8 +17,21 @@ import { resolveGraphQLUser } from './context.js';
 export function attachGraphQLSubscriptions(
   httpServer: Server,
   schema: GraphQLSchema = graphQLSchema
-): void {
+): WebSocketServer {
   const wsServer = new WebSocketServer({ server: httpServer, path: '/graphql' });
+
+  wsServer.on('connection', (socket) => {
+    onGraphQLSubscriptionClientConnected();
+    logger.info('graphql_subscription_client_connected', {
+      activeClients: wsServer.clients.size,
+    });
+    socket.on('close', () => {
+      onGraphQLSubscriptionClientDisconnected();
+      logger.info('graphql_subscription_client_disconnected', {
+        activeClients: wsServer.clients.size,
+      });
+    });
+  });
 
   useServer(
     {
@@ -32,4 +50,6 @@ export function attachGraphQLSubscriptions(
     },
     wsServer
   );
+
+  return wsServer;
 }

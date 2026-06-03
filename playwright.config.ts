@@ -20,7 +20,7 @@ export default defineConfig({
     : [
         {
           command: 'npm run dev:api',
-          url: `http://localhost:${apiPort}/health`,
+          url: `http://localhost:${apiPort}/health/ready`,
           reuseExistingServer: true,
           timeout: 120_000,
         },

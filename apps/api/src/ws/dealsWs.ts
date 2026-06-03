@@ -2,6 +2,7 @@ import type { Server } from 'node:http';
 import type { DomainDealEvent } from '@otcflow/shared';
 import { DealEventSchema } from '@otcflow/shared';
 import { WebSocketServer, WebSocket as WsSocket } from 'ws';
+import { logger } from '../observability/logger.js';
 
 const clients = new Set<WsSocket>();
 
@@ -16,6 +17,10 @@ export function getLastDealEventSequence(): number {
   return nextSequenceNumber;
 }
 
+export function getActiveDealWebSocketClients(): number {
+  return clients.size;
+}
+
 /**
  * Attach a WebSocket server on the same HTTP port as Express, path `/ws/deals`.
  * Clients receive JSON matching DealEventSchema (with monotonic sequenceNumber).
@@ -25,8 +30,11 @@ export function attachDealsWebSocket(server: Server): WebSocketServer {
 
   wss.on('connection', (socket) => {
     clients.add(socket);
+    logger.info('deals_websocket_client_connected', { activeClients: clients.size });
+
     socket.on('close', () => {
       clients.delete(socket);
+      logger.info('deals_websocket_client_disconnected', { activeClients: clients.size });
     });
   });
 
