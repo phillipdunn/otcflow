@@ -137,10 +137,11 @@ Runs on `ubuntu-latest` with a **Postgres 16** service container for integration
 | Step | Command | What it checks |
 | ---- | ------- | -------------- |
 | Install | `npm ci` | Lockfile + workspace install; `@otcflow/shared` builds via `prepare` |
+| Prisma client | `db:generate` | Required before `tsc` can resolve `@prisma/client` types |
 | Lint | `npm run lint` | ESLint across the monorepo |
-| Typecheck | `npm run typecheck` | `tsc` in `shared`, `api`, and `web` |
+| Typecheck | `npm run typecheck` | `tsc` in `shared`, `api`, and `web` (`api` also runs `prisma generate`) |
 | Unit tests | `npm run test:unit` | API + web Vitest (mocked / MSW) |
-| DB migrate | `db:generate` + `db:migrate:deploy` | Prisma schema applies to CI Postgres |
+| DB migrate | `db:migrate:deploy` | Prisma schema applies to CI Postgres |
 | Integration tests | `npm run test:integration` | Supertest + real Postgres (REST + GraphQL) |
 | Build | `npm run build` | `shared` + production web bundle |
 
