@@ -14,7 +14,6 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  const { prisma } = await import('../db/prisma.js');
   const auditService = await import('../services/audit.service.js');
   const dealRepo = await import('../repositories/deal.repository.js');
 

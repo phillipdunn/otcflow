@@ -12,7 +12,7 @@ This README describes **what is in the repo today**. For **what each part means 
 | **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 5 blotter**: **MUI** + **AG Grid**; **Phase 6**: **Acting as** user in app bar, **`x-user-id`** on mutations. **Phase 7**: **Audit History** in deal **`Drawer`** (**`DealAuditHistory`**, TanStack Query **`['deals', id, 'auditEvents']`**). **Phase 4** retained: TanStack Query + REST, **`useDealEventsWebSocket`** on **`/ws/deals`** with version-guarded cache merge and reconnect backoff. |
 | **`apps/api`**        | Express on **3000** + **`/ws/deals`**. **PostgreSQL** via **Prisma** (deals + audit persist). REST unchanged; simulator + WS as Phase 8. Native dev or **Docker Compose** (Phase 10). See [apps/api/DATABASE.md](apps/api/DATABASE.md). |
 | **`packages/shared`** | **`Deal`**, **`DealEvent`**, **`AuditEvent`** (+ Zod), **`User`** / **`MOCK_USERS`**, **`HealthResponseSchema`**. Builds to `dist/` on `npm install` (`prepare`). |
-| **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package. **Docker Compose** (Phase 10): `web` + `api` + `postgres`.                                                                                                                                                                                                                                                                                                                                                                                   |
+| **Tooling**           | ESLint (flat config, root), Prettier (root), TypeScript per package. **Docker Compose** (Phase 10): `web` + `api` + `postgres`. **GitHub Actions CI** (Phase 14): lint, typecheck, unit + integration tests, build on PRs and `main`. |
 
 ## Repository layout
 
@@ -125,6 +125,44 @@ npm run format:check
 ```
 
 Prettier should report all files OK.
+
+## Continuous integration (GitHub Actions)
+
+Pipelines live under [`.github/workflows/`](.github/workflows/).
+
+### CI (`ci.yml`) — every pull request and push to `main`
+
+Runs on `ubuntu-latest` with a **Postgres 16** service container for integration tests.
+
+| Step | Command | What it checks |
+| ---- | ------- | -------------- |
+| Install | `npm ci` | Lockfile + workspace install; `@otcflow/shared` builds via `prepare` |
+| Lint | `npm run lint` | ESLint across the monorepo |
+| Typecheck | `npm run typecheck` | `tsc` in `shared`, `api`, and `web` |
+| Unit tests | `npm run test:unit` | API + web Vitest (mocked / MSW) |
+| DB migrate | `db:generate` + `db:migrate:deploy` | Prisma schema applies to CI Postgres |
+| Integration tests | `npm run test:integration` | Supertest + real Postgres (REST + GraphQL) |
+| Build | `npm run build` | `shared` + production web bundle |
+
+**Environment:** `TEST_DATABASE_URL` and `DATABASE_URL` point at `127.0.0.1:5432` (the Actions Postgres service). Local Docker Compose still uses port **5433** by default — no change to native dev.
+
+**Not in default CI:** Playwright e2e (slower, needs browsers). Run locally with `npm run test:e2e` or trigger the optional workflow below.
+
+### E2E (`e2e.yml`) — manual only
+
+Run from the GitHub **Actions** tab → **E2E** → **Run workflow**. Same Postgres service; installs Chromium, migrates the DB, runs `npm run test:e2e` (Playwright starts `dev:api` + `dev:web`).
+
+### Run the same checks locally
+
+```bash
+npm ci
+npm run lint
+npm run typecheck
+npm run test              # unit + integration (Postgres required for integration)
+npm run build
+```
+
+Integration tests need Postgres listening (native or `docker compose up postgres`). Set `TEST_DATABASE_URL` if not using the default `127.0.0.1:5433` from Docker Compose.
 
 ## Local development
 
@@ -261,6 +299,12 @@ Builds `@otcflow/shared`, then `@otcflow/web` (`tsc -b` + `vite build` → `apps
 | `npm run docker:seed`  | Seed DB via api container |
 | `npm run build`        | `shared` then `web`  |
 | `npm run lint`         | ESLint               |
+| `npm run typecheck`    | TypeScript (`shared`, `api`, `web`) |
+| `npm run test`         | Unit + integration tests |
+| `npm run test:unit`    | API + web Vitest unit tests |
+| `npm run test:integration` | API Supertest + Postgres |
+| `npm run test:e2e`     | Playwright e2e (local or manual Actions workflow) |
+| `npm run test:e2e:install` | Install Playwright Chromium |
 | `npm run format`       | Prettier write       |
 | `npm run format:check` | Prettier check       |
 

@@ -1,6 +1,6 @@
 import type { Server } from 'node:http';
 import type { GraphQLSchema } from 'graphql';
-import { useServer } from 'graphql-ws/lib/use/ws';
+import { useServer, type Extra } from 'graphql-ws/use/ws';
 import { WebSocketServer } from 'ws';
 import { graphQLSchema } from './schema.js';
 import { resolveGraphQLUser } from './context.js';
@@ -18,7 +18,7 @@ export function attachGraphQLSubscriptions(
   useServer(
     {
       schema,
-      context: (ctx) => {
+      context: (ctx: { extra: Extra; connectionParams?: Record<string, unknown> }) => {
         const headerUser = ctx.extra.request.headers['x-user-id'];
         const paramUser = ctx.connectionParams?.['x-user-id'];
         const raw =

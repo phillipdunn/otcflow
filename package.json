@@ -23,6 +23,7 @@
     "test:integration": "npm run test:integration -w @otcflow/api",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
+    "typecheck": "npm run typecheck -w @otcflow/shared && npm run typecheck -w @otcflow/api && npm run typecheck -w @otcflow/web",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
