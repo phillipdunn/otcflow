@@ -3,6 +3,7 @@ import express from 'express';
 import { dealsRouter } from './routes/deals.routes.js';
 import { healthRouter } from './routes/health.routes.js';
 import { simulatorRouter } from './routes/simulator.routes.js';
+import { mountGraphQLHttp } from './graphql/mountGraphQLHttp.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
 import { userContextMiddleware } from './middleware/userContext.middleware.js';
 
@@ -25,7 +26,7 @@ export function createApp(): express.Application {
     res.json({
       service: 'otcflow-api',
       message:
-        'REST + WS + Postgres — GET /health, GET /deals, GET /deals/:id/events, POST /simulator/*, WebSocket /ws/deals …',
+        'REST + GraphQL + WS + Postgres — GET /health, GET /deals, POST /graphql, WebSocket /ws/deals …',
     });
   });
 
@@ -44,6 +45,7 @@ export function createApp(): express.Application {
   app.use(healthRouter);
   app.use(dealsRouter);
   app.use(simulatorRouter);
+  mountGraphQLHttp(app);
   app.use(errorMiddleware);
 
   return app;

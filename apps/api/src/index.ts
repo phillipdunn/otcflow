@@ -6,13 +6,17 @@ import { prisma } from './db/prisma.js';
 import { attachDealsWebSocket } from './ws/dealsWs.js';
 import { dealEventBus } from './events/dealEventBus.js';
 import { wireDealEventBusToWebSocket } from './events/wireDealEventBusToWebSocket.js';
+import { wireDealEventBusToGraphQL } from './graphql/wireDealEventBusToGraphQL.js';
+import { attachGraphQLSubscriptions } from './graphql/attachGraphQLSubscriptions.js';
 
 const app = createApp();
 const port = Number(process.env.PORT) || 3000;
 const httpServer = createServer(app);
 
 attachDealsWebSocket(httpServer);
+attachGraphQLSubscriptions(httpServer);
 wireDealEventBusToWebSocket(dealEventBus);
+wireDealEventBusToGraphQL(dealEventBus);
 
 async function bootstrap(): Promise<void> {
   await prisma.$connect();
@@ -21,6 +25,8 @@ async function bootstrap(): Promise<void> {
   httpServer.listen(port, () => {
     console.log(`OTCFlow API listening on http://localhost:${port}`);
     console.log(`Deal events WebSocket: ws://localhost:${port}/ws/deals`);
+    console.log(`GraphQL HTTP: http://localhost:${port}/graphql`);
+    console.log(`GraphQL subscriptions: ws://localhost:${port}/graphql`);
     console.log('PostgreSQL connected (Prisma)');
   });
 }

@@ -8,5 +8,6 @@ export default defineConfig({
     setupFiles: ['src/test/setIntegrationDatabaseUrl.ts', 'src/test/integration.setup.ts'],
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    fileParallelism: false,
   },
 });

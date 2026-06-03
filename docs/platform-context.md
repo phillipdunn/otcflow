@@ -15,12 +15,12 @@ The **goal stack** (built incrementally; much of it not wired yet):
 - Shared TypeScript types (and validation) in a library
 - REST APIs
 - TanStack Query (client data fetching and cache)
-- WebSockets (live quotes, blotter updates, workflow events) — **Phase 4**: deal create/status events over **`/ws/deals`** ([phase-4 walkthrough](phases/phase-4-websocket-realtime.md)); broader feeds still TBD.
+- WebSockets (live quotes, blotter updates, workflow events) — **Phase 4**: deal create/status events over **`/ws/deals`** ([phase-4 walkthrough](phases/phase-4-websocket-realtime.md)); **Phase 12**: internal **`DealEventBus`** decouples writes from WS fan-out ([phase-12 walkthrough](phases/phase-12-event-bus-pubsub.md)); broader feeds still TBD.
 - **Acting user / attribution (demo)** — **Phase 6**: mock **`User`** + **`x-user-id`** → **`req.currentUser`** on the API ([phase-6 walkthrough](phases/phase-6-user-context.md)); not login or RBAC yet.
 - **Audit trail (demo)** — **Phase 7**: append-only **`AuditEvent`** history per deal, attributed to **`req.currentUser`** on create/status ([phase-7 walkthrough](phases/phase-7-audit-trail.md)); in-memory only until Postgres.
 - PostgreSQL (durable tickets, audit, reference data)
 - Docker (repeatable environments)
-- GraphQL subscriptions (optional pattern for some desks; not required for v1)
+- GraphQL subscriptions — **Phase 13**: queries/mutations at **`POST /graphql`**, **`dealUpdated`** subscription via **`graphql-ws`** on the same internal event bus as **`/ws/deals`** ([phase-13 walkthrough](phases/phase-13-graphql.md)); blotter still REST + TanStack Query for now.
 - AWS-style deployment and boundaries **later** (VPC, ALB, managed DB, etc.)
 
 **Boundary for early steps:** avoid pulling in AWS, Docker, GraphQL, full streaming quote feeds, databases, and Prisma until you deliberately add them — keep each step small and understandable. (Deal-row **WebSockets** are in for Phase 4; everything else on the list above is still optional / later.)
@@ -31,8 +31,8 @@ The **goal stack** (built incrementally; much of it not wired yet):
 
 | Path                  | What it represents on a real desk                                                                           | What it should grow into                                                                                                                                                             |
 | --------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`apps/web`**        | **Dealing desk / client UI** — where front office see quotes, tickets, risk hints, and workflow state.      | Rich screens for RFQs, axes, negotiation, and ticket lifecycle; **Phase 4** WebSocket-driven deal updates; **Phase 5** **MUI + AG Grid** blotter; **Phase 6** “acting as” user in the app bar + **`x-user-id`** on mutations; **Phase 7** audit timeline in deal detail; further live feeds (quotes, risk) still TBD. |
-| **`apps/api`**        | **Gateway / orchestration** — the HTTP edge traders and internal tools hit first.                           | REST for commands and queries; **Phase 6** **`req.currentUser`**; **Phase 7** append-only audit log + **`GET /deals/:id/events`**; later JWT/session, RBAC, durable audit store.                         |
+| **`apps/web`**        | **Dealing desk / client UI** — where front office see quotes, tickets, risk hints, and workflow state.      | Rich screens for RFQs, axes, negotiation, and ticket lifecycle; **Phase 4** WebSocket-driven deal updates; **Phase 5** **MUI + AG Grid** blotter; **Phase 6** “acting as” user in the app bar + **`x-user-id`** on mutations; **Phase 7** audit timeline in deal detail; **Phase 11** RTL + MSW component tests; further live feeds (quotes, risk) still TBD. |
+| **`apps/api`**        | **Gateway / orchestration** — the HTTP edge traders and internal tools hit first.                           | REST for commands and queries; **Phase 6** **`req.currentUser`**; **Phase 7** append-only audit log + **`GET /deals/:id/events`**; **Phase 11** **`createApp()`** + Vitest/Supertest; **Phase 12** **`DealEventBus`** after commits; **Phase 13** GraphQL at **`/graphql`** (additive); later JWT/session, RBAC.                         |
 | **`packages/shared`** | **Wire contracts** — the law of the land for JSON payloads between UI and API (and later between services). | Zod schemas for **`Deal`**, **`DealEvent`**, **`AuditEvent`**, **`User`**, and errors; inferred TypeScript types so UI and API cannot drift silently.                                            |
 
 ---
@@ -51,7 +51,8 @@ Replacing **`MOCK_DEALS`** with API + TanStack Query (or WebSocket snapshots) la
 ## How “shared contracts” map to OTC systems
 
 - **Today:** `DealSchema` encodes **product** (rates: `IRS`, `OIS`; FX: `FX_OPTION`, `FX_SWAP`, `FX_NDF`; credit: `CDS`, `CDX`; cash: `BOND`; equity: `EQUITY_OPTION`, `EQUITY_SWAP`), **currency** (`GBP`, `USD`, `EUR`), **status** (`NEW`, `PENDING`, `MATCHED`, `CANCELLED`, `BOOKED`), **version**, and timestamps; `HealthResponseSchema` covers API readiness; **`UserSchema`** (**`id`**, **`name`**, **`role`**: `BROKER` | `TRADER` | `SUPERVISOR` | `OPERATIONS`) plus **`MOCK_USERS`** for Phase 6 acting-as — same **schema + `z.infer`** pattern for richer payloads later.
-- **Tomorrow:** one definition for “RFQ created,” “quote revised,” “trade done,” and **who** performed each action (audit / compliance), consumed by the gateway and the desk UI — mirrors how serious trading APIs avoid duplicate DTOs and mismatched enums.
+- **Phase 13** adds **GraphQL** (queries, mutations, **`dealUpdated`** subscription) as an alternative API surface; the desk UI still uses REST + TanStack Query until deliberately migrated.
+- **Tomorrow:** one definition for “RFQ created,” “quote revised,” “trade done,” and **who** performed each action (audit / compliance), consumed by the gateway, GraphQL schema, and the desk UI — mirrors how serious trading APIs avoid duplicate DTOs and mismatched enums.
 
 ## Identity and attribution (Phase 6 — demo only)
 
@@ -77,7 +78,7 @@ The monorepo structure supports evolving those states in **`packages/shared`** w
 
 ## Event-driven angle
 
-“Event-driven” here means: important state changes should be observable as **facts** (messages or events) that multiple consumers can react to — blotter, risk, confirmations, ops dashboards — not only as a single synchronous HTTP response. **Phase 4** pushes **`DealEvent`** snapshots over **`/ws/deals`** (live UI). **Phase 6** adds **who** initiated writes via **`req.currentUser`**. **Phase 7** persists **audit facts** separately from the mutable **`Deal`** row (**`GET /deals/:id/events`**).
+“Event-driven” here means: important state changes should be observable as **facts** (messages or events) that multiple consumers can react to — blotter, risk, confirmations, ops dashboards — not only as a single synchronous HTTP response. **Phase 4** pushes **`DealEvent`** snapshots over **`/ws/deals`** (live UI). **Phase 6** adds **who** initiated writes via **`req.currentUser`**. **Phase 7** persists **audit facts** separately from the mutable **`Deal`** row (**`GET /deals/:id/events`**). **Phase 12** centralises post-commit notify on an internal **`DealEventBus`** so WebSocket (and later GraphQL) are subscribers, not callers from the write path.
 
 ---
 
