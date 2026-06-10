@@ -17,8 +17,7 @@ apps/web/.vite/
 # Logs
 npm-debug.log*
 
-# Local phase notes + Notion export (personal; not committed)
-docs/phases/
-scripts/build-notion-phases-doc.mjs
+# Generated Notion merge (run scripts/build-notion-phases-doc.mjs locally)
+docs/phases/OTCFlow-Phases.md
 test-results/ # if not already ignored
 test-results/ # if not already ignored
