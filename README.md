@@ -12,7 +12,7 @@ This README describes **what is in the repo today**. For **what each part means 
 | **`apps/web`**        | React 18 + Vite 6 + TypeScript. **Phase 5 blotter**: **MUI** + **AG Grid**; **Phase 6**: **Acting as** user in app bar, **`x-user-id`** on mutations. **Phase 7**: **Audit History** in deal **`Drawer`** (**`DealAuditHistory`**, TanStack Query **`['deals', id, 'auditEvents']`**). **Phase 4** retained: TanStack Query + REST, **`useDealEventsWebSocket`** on **`/ws/deals`** with version-guarded cache merge and reconnect backoff. |
 | **`apps/api`**        | Express on **3000** + **`/ws/deals`**. **PostgreSQL** via **Prisma** (deals + audit persist). REST unchanged; simulator + WS as Phase 8. Native dev or **Docker Compose** (Phase 10). See [apps/api/DATABASE.md](apps/api/DATABASE.md). |
 | **`packages/shared`** | **`Deal`**, **`DealEvent`**, **`AuditEvent`** (+ Zod), **`User`** / **`MOCK_USERS`**, **`HealthResponseSchema`**. Builds to `dist/` on `npm install` (`prepare`). |
-| **Tooling**           | ESLint, Prettier, TypeScript, Docker Compose, GitHub Actions CI. **Observability (Phase 15):** structured logs, request IDs, `/health/live`, `/health/ready`, `/metrics`, graceful shutdown. |
+| **Tooling**           | ESLint, Prettier, TypeScript, Docker Compose, GitHub Actions CI. **Observability (Phase 15):** structured logs, request IDs, `/health/live`, `/health/ready`, `/metrics`, graceful shutdown. **Infrastructure (Phase 16):** educational Terraform skeleton under `infra/terraform/` (not deployed from this repo). |
 
 ## Repository layout
 
@@ -22,6 +22,7 @@ This README describes **what is in the repo today**. For **what each part means 
 | `apps/api`        | HTTP + WebSocket on **`:3000`** (`src/ws/dealsWs.ts`). Routes / controllers / services / `data` / `validation` / `middleware`. |
 | `packages/shared` | Shared Zod schemas and inferred types consumed by web and API (`Deal`, health, …).                                             |
 | `docker-compose.yml` | Phase 10: **web** + **api** + **postgres** for a production-like local stack. See [Docker](#docker-production-like-local-stack). |
+| `infra/terraform/` | Phase 16: AWS Terraform **skeleton** (CDN + S3, ECS, RDS, ALB, logs, secrets placeholders). See [Infrastructure skeleton](#infrastructure-skeleton-phase-16). |
 
 ### Web blotter (`apps/web/src/blotter/`)
 
@@ -80,7 +81,7 @@ This README describes **what is in the repo today**. For **what each part means 
 
 12. **Docker Compose (Phase 10)** — `docker compose up` runs nginx-served web, API, and Postgres with migrations on API start. See [Docker](#docker-production-like-local-stack).
 
-**Not in this repo:** AWS, GraphQL, real auth/RBAC (by design until you add them).
+**Not deployed from this repo:** live cloud stacks (Terraform is illustrative only), real auth/RBAC. GraphQL API exists alongside REST but is optional for the blotter.
 
 ## Prerequisites
 
@@ -337,6 +338,27 @@ Copy **`docker.env.example`** → **`.env`** at the repo root. Key vars:
 | `POSTGRES_*` | `postgres` / `otcflow` | DB credentials (api `DATABASE_URL` is derived) |
 
 Migrations run automatically when the **api** container starts. Use **`npm run docker:migrate`** to run them manually; **`npm run docker:seed`** for sample data (skips if deals already exist).
+
+## Infrastructure skeleton (Phase 16)
+
+Educational Terraform under **`infra/terraform/`** — shows a possible **AWS** layout (not applied from this repo):
+
+| Terraform file | Cloud role |
+| -------------- | ---------- |
+| `networking.tf` | VPC, subnets, security groups |
+| `frontend.tf` | S3 + CloudFront (static Vite build) |
+| `api.tf` | ECR, ALB, ECS Fargate (API container) |
+| `database.tf` | RDS PostgreSQL 16 |
+| `logging.tf` | CloudWatch Logs for API |
+| `secrets.tf` | Secrets Manager placeholders (`DATABASE_URL`, `CORS_ORIGIN`) |
+
+| Compose service | Skeleton target |
+| --------------- | ----------------- |
+| **web** | S3 origin behind CDN (replaces nginx container) |
+| **api** | Container on Fargate behind ALB (same Dockerfile) |
+| **postgres** | RDS in private subnets (replaces `postgres:16-alpine` volume) |
+
+Full file list, variables, gaps, and `terraform plan` notes: **[infra/terraform/README.md](infra/terraform/README.md)**.
 
 ## Build
 
