@@ -16,7 +16,9 @@ beforeAll(async () => {
 beforeEach(async () => {
   const auditService = await import('../services/audit.service.js');
   const dealRepo = await import('../repositories/deal.repository.js');
+  const simulatorService = await import('../services/simulator.service.js');
 
+  await simulatorService.stopSimulator();
   await dealRepo.deleteAllDeals();
   await auditService.clearAllAuditEvents();
 });

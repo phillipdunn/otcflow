@@ -19,7 +19,7 @@
     "docker:migrate": "docker compose run --rm --entrypoint npx api prisma migrate deploy",
     "docker:seed": "docker compose run --rm --entrypoint npx api prisma db seed",
     "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "npm run test:unit -w @otcflow/api && npm run test:unit -w @otcflow/web",
+    "test:unit": "npm run test:unit -w @otcflow/shared && npm run test:unit -w @otcflow/api && npm run test:unit -w @otcflow/web",
     "test:integration": "npm run test:integration -w @otcflow/api",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
