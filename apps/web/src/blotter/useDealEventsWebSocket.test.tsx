@@ -35,6 +35,10 @@ type MockWebSocketInstance = {
 
 let latestSocket: MockWebSocketInstance | null = null;
 
+function registerLatestMockSocket(socket: MockWebSocketInstance): void {
+  latestSocket = socket;
+}
+
 class MockWebSocket {
   onopen: MockWebSocketInstance['onopen'] = null;
   onmessage: MockWebSocketInstance['onmessage'] = null;
@@ -42,9 +46,10 @@ class MockWebSocket {
   onerror: MockWebSocketInstance['onerror'] = null;
   close = vi.fn();
 
-  constructor(_url: string) {
-    latestSocket = this;
-    queueMicrotask(() => this.onopen?.(new Event('open')));
+  constructor(...args: unknown[]) {
+    void args;
+    registerLatestMockSocket(this);
+    queueMicrotask(() => latestSocket?.onopen?.(new Event('open')));
   }
 }
 
