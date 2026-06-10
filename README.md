@@ -2,7 +2,7 @@
 
 Event-driven OTC trading workflow platform — **npm workspaces** monorepo (one lockfile, shared TypeScript packages).
 
-This README describes **what is in the repo today**. For **what each part means on a real OTC desk**, how it maps to workflows, and **where the stack is headed** (not all built yet), see [docs/platform-context.md](docs/platform-context.md).
+This README describes **what is in the repo today**. For desk vocabulary and target shape, see [docs/platform-context.md](docs/platform-context.md). For **canonical phase numbers** (delivery phases 1–16), see [docs/phase-index.md](docs/phase-index.md). For **logical module boundaries** in the API, see [docs/architecture.md](docs/architecture.md).
 
 ## What exists right now
 
@@ -57,6 +57,8 @@ This README describes **what is in the repo today**. For **what each part means 
 
 ## Why it is structured this way
 
+Items **1–9** are structural choices (monorepo, tooling, patterns). Items **10–12** describe shipped features but their numbers are **not** phase IDs — e.g. item 10 is WebSocket events (**Phase 4**), item 12 is Docker (**Phase 10**). See [docs/phase-index.md](docs/phase-index.md).
+
 1. **npm workspaces** — Local packages link with `"workspace": "*"` style deps (`"@otcflow/shared": "*"`) without publishing.
 
 2. **Vite** — Dev server and production bundle for the React app.
@@ -81,13 +83,13 @@ This README describes **what is in the repo today**. For **what each part means 
 
 12. **Docker Compose (Phase 10)** — `docker compose up` runs nginx-served web, API, and Postgres with migrations on API start. See [Docker](#docker-production-like-local-stack).
 
-**Not deployed from this repo:** live cloud stacks (Terraform is illustrative only), real auth/RBAC. GraphQL API exists alongside REST but is optional for the blotter.
+**In the repo but not a live cloud deploy:** PostgreSQL, Prisma, Docker Compose, GraphQL, and the Phase 16 Terraform skeleton are all present — run and develop locally as documented below. **Not deployed from this repo:** applying Terraform to a real AWS account; production auth/RBAC. The GraphQL API exists alongside REST; the blotter uses REST + TanStack Query.
 
 ## Prerequisites
 
 **Native dev (npm):**
 
-- Node.js 20.x+ (LTS recommended)
+- Node.js **22** (matches [CI](.github/workflows/ci.yml); Node 20 LTS may work locally)
 - npm 10.x+
 - PostgreSQL 14+ (local — see [apps/api/DATABASE.md](apps/api/DATABASE.md))
 
