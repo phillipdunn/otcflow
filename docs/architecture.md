@@ -268,3 +268,4 @@ Typical **command** path (REST `POST /deals`, GraphQL `createDeal`, or simulator
 | [phase-index.md](phase-index.md) | Delivery phases 1–19 and code pointers |
 | [infra/terraform/README.md](../infra/terraform/README.md) | Illustrative AWS layout for the monolith |
 | [README.md](../README.md) | Commands, endpoints, and what ships today |
+| [runbook.md](runbook.md) | Incident response, debugging commands, remediation |

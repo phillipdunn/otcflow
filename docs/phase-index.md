@@ -25,6 +25,7 @@ This file is **committed** and safe to link from docs. Optional longer walkthrou
 | 17 | Test coverage gaps (simulator, WS, shared schemas) | Yes | `*.integration.test.ts`, `packages/shared/src/schemas.test.ts`, `useDealEventsWebSocket.test.tsx` |
 | 18 | GraphQL subscription integration tests | Yes | `graphqlSubscriptions.integration.test.ts`, `graphqlWsTestClient.ts` |
 | 19 | Architecture and service boundaries docs | Yes | [architecture.md](architecture.md) |
+| 20 | Production-style runbook | Yes | [runbook.md](runbook.md) |
 
 ## README section names vs phase numbers
 
@@ -39,4 +40,5 @@ Use `phase-N-short-topic` (e.g. `phase-19-architecture`) per [CONTRIBUTING.md](.
 | Doc | Role |
 | --- | ---- |
 | [architecture.md](architecture.md) | Modular monolith boundaries (Phase 19) |
+| [runbook.md](runbook.md) | Operations runbook (Phase 20) |
 | [platform-context.md](platform-context.md) | Desk vocabulary and target shape |
