@@ -1,0 +1,17 @@
+# Copy to terraform.tfvars and fill in non-secret values.
+# Never commit terraform.tfvars if it contains account-specific data you treat as private.
+
+project_name   = "otcflow"
+environment    = "dev"
+aws_region     = "YOUR_AWS_REGION"       # e.g. eu-west-1
+aws_account_id = "000000000000"          # 12-digit placeholder — replace with your account
+
+# Optional: ACM cert ARN in the ALB region enables HTTPS :443. Empty = HTTP :80 (sandbox).
+api_listener_certificate_arn = ""
+
+# Set after CloudFront exists — used when populating the cors-origin secret.
+cors_allowed_origin = "https://placeholder.example.com"
+
+# Optional tuning
+# api_desired_count = 1
+# db_instance_class = "db.t4g.micro"
