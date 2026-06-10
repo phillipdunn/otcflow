@@ -22,6 +22,9 @@ This file is **committed** and safe to link from docs. Optional longer walkthrou
 | 14 | GitHub Actions CI | Yes | `.github/workflows/ci.yml`, [CONTRIBUTING.md](../CONTRIBUTING.md) |
 | 15 | Observability (logs, health, metrics, shutdown) | Yes | `apps/api/src/observability/`, README § Operations |
 | 16 | Terraform skeleton (not deployed) | Yes | [infra/terraform/README.md](../infra/terraform/README.md) |
+| 17 | Test coverage gaps (simulator, WS, shared schemas) | Yes | `*.integration.test.ts`, `packages/shared/src/schemas.test.ts`, `useDealEventsWebSocket.test.tsx` |
+| 18 | GraphQL subscription integration tests | Yes | `graphqlSubscriptions.integration.test.ts`, `graphqlWsTestClient.ts` |
+| 19 | Architecture and service boundaries docs | Yes | [architecture.md](architecture.md) |
 
 ## README section names vs phase numbers
 
@@ -29,4 +32,11 @@ The **“Why it is structured this way”** list in the root README is numbered 
 
 ## Branch naming
 
-Use `phase-N-short-topic` (e.g. `phase-16-terraform`) per [CONTRIBUTING.md](../CONTRIBUTING.md).
+Use `phase-N-short-topic` (e.g. `phase-19-architecture`) per [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+## Related docs
+
+| Doc | Role |
+| --- | ---- |
+| [architecture.md](architecture.md) | Modular monolith boundaries (Phase 19) |
+| [platform-context.md](platform-context.md) | Desk vocabulary and target shape |

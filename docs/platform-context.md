@@ -92,8 +92,8 @@ The monorepo structure supports evolving those states in **`packages/shared`** w
 | Doc | Role |
 | --- | ---- |
 | **[README](../README.md)** | Shipped behavior, commands, and layout — verify against `git`. |
-| **[phase-index.md](phase-index.md)** | Canonical phase numbers (1–16) and where to look in the repo. |
-| **[architecture.md](architecture.md)** | Logical modules inside the API monolith. |
+| **[phase-index.md](phase-index.md)** | Canonical phase numbers (1–19) and where to look in the repo. |
+| **[architecture.md](architecture.md)** | Modular monolith, service boundaries, event flow, data ownership, failure notes. |
 | **This file** | Desk vocabulary, analogies, and what is still ahead of the current slice. |
 
 Optional longer walkthrough notes may live in `docs/phases/` locally; that folder is **gitignored** — do not link to it from committed docs.

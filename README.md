@@ -2,7 +2,7 @@
 
 Event-driven OTC trading workflow platform — **npm workspaces** monorepo (one lockfile, shared TypeScript packages).
 
-This README describes **what is in the repo today**. For desk vocabulary and target shape, see [docs/platform-context.md](docs/platform-context.md). For **canonical phase numbers** (delivery phases 1–16), see [docs/phase-index.md](docs/phase-index.md). For **logical module boundaries** in the API, see [docs/architecture.md](docs/architecture.md).
+This README describes **what is in the repo today**. For desk vocabulary and target shape, see [docs/platform-context.md](docs/platform-context.md). For **canonical phase numbers** (delivery phases 1–19), see [docs/phase-index.md](docs/phase-index.md). For **logical module boundaries** in the API, see [docs/architecture.md](docs/architecture.md).
 
 ## What exists right now
 
@@ -23,6 +23,7 @@ This README describes **what is in the repo today**. For desk vocabulary and tar
 | `packages/shared` | Shared Zod schemas and inferred types consumed by web and API (`Deal`, health, …).                                             |
 | `docker-compose.yml` | Phase 10: **web** + **api** + **postgres** for a production-like local stack. See [Docker](#docker-production-like-local-stack). |
 | `infra/terraform/` | Phase 16: AWS Terraform **skeleton** (CDN + S3, ECS, RDS, ALB, logs, secrets placeholders). See [Infrastructure skeleton](#infrastructure-skeleton-phase-16). |
+| `docs/architecture.md` | Modular monolith layout, logical service boundaries, event flow, and extraction path. See [Architecture](docs/architecture.md). |
 
 ### Web blotter (`apps/web/src/blotter/`)
 
