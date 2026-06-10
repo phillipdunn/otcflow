@@ -1,4 +1,3 @@
-import type { Server } from 'node:http';
 import type { GraphQLSchema } from 'graphql';
 import { useServer, type Extra } from 'graphql-ws/use/ws';
 import { WebSocketServer } from 'ws';
@@ -14,11 +13,10 @@ import {
  * GraphQL subscriptions over WebSocket at `ws://host/graphql` (graphql-ws protocol).
  * REST blotter clients keep using `/ws/deals`; this path is for GraphQL subscribers.
  */
-export function attachGraphQLSubscriptions(
-  httpServer: Server,
+export function createGraphQLSubscriptionServer(
   schema: GraphQLSchema = graphQLSchema
 ): WebSocketServer {
-  const wsServer = new WebSocketServer({ server: httpServer, path: '/graphql' });
+  const wsServer = new WebSocketServer({ noServer: true });
 
   wsServer.on('connection', (socket) => {
     onGraphQLSubscriptionClientConnected();

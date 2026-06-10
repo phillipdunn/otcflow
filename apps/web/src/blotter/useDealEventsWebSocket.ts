@@ -81,12 +81,28 @@ export function useDealEventsWebSocket(): void {
       }, delayMs);
     };
 
+    const detachSocket = (ws: WebSocket) => {
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onclose = null;
+      ws.onerror = null;
+    };
+
     const connect = () => {
       clearReconnectTimer();
+
+      const previous = wsRef.current;
+      if (previous) {
+        detachSocket(previous);
+        previous.close();
+        wsRef.current = null;
+      }
+
       const ws = new WebSocket(getDealsWebSocketUrl());
       wsRef.current = ws;
 
       ws.onopen = () => {
+        if (wsRef.current !== ws) return;
         const wasReconnect = attemptRef.current > 0;
         attemptRef.current = 0;
         if (wasReconnect) {
@@ -96,6 +112,7 @@ export function useDealEventsWebSocket(): void {
       };
 
       ws.onmessage = (event) => {
+        if (wsRef.current !== ws) return;
         try {
           const raw: unknown = JSON.parse(event.data as string);
           const parsed = DealEventSchema.parse(raw);
@@ -113,6 +130,7 @@ export function useDealEventsWebSocket(): void {
       };
 
       ws.onclose = () => {
+        if (wsRef.current !== ws) return;
         wsRef.current = null;
         if (mountedRef.current) {
           scheduleReconnect();
@@ -120,6 +138,7 @@ export function useDealEventsWebSocket(): void {
       };
 
       ws.onerror = () => {
+        if (wsRef.current !== ws) return;
         ws.close();
       };
     };
@@ -130,8 +149,12 @@ export function useDealEventsWebSocket(): void {
       mountedRef.current = false;
       unsub();
       clearReconnectTimer();
-      wsRef.current?.close();
-      wsRef.current = null;
+      const ws = wsRef.current;
+      if (ws) {
+        detachSocket(ws);
+        ws.close();
+        wsRef.current = null;
+      }
     };
   }, [queryClient]);
 }

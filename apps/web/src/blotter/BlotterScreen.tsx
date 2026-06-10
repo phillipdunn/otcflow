@@ -105,8 +105,6 @@ export function BlotterScreen() {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'background.default' }}>
       <BlotterAppBar onNewTrade={() => setShowCreateForm(true)} newTradeDisabled={dealsQuery.isPending} />
 
-      {dealsQuery.isFetching && !dealsQuery.isPending ? <LinearProgress sx={{ height: 2 }} /> : null}
-
       {dealsQuery.isPending ? (
         <Box sx={{ p: 4, textAlign: 'center' }} role="status" aria-live="polite">
           <Typography>Loading trades…</Typography>

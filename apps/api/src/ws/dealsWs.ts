@@ -1,4 +1,3 @@
-import type { Server } from 'node:http';
 import type { DomainDealEvent } from '@otcflow/shared';
 import { DealEventSchema } from '@otcflow/shared';
 import { WebSocketServer, WebSocket as WsSocket } from 'ws';
@@ -22,11 +21,11 @@ export function getActiveDealWebSocketClients(): number {
 }
 
 /**
- * Attach a WebSocket server on the same HTTP port as Express, path `/ws/deals`.
+ * WebSocket server for deal events at `/ws/deals` (upgrade routed in `index.ts`).
  * Clients receive JSON matching DealEventSchema (with monotonic sequenceNumber).
  */
-export function attachDealsWebSocket(server: Server): WebSocketServer {
-  const wss = new WebSocketServer({ server, path: '/ws/deals' });
+export function createDealsWebSocketServer(): WebSocketServer {
+  const wss = new WebSocketServer({ noServer: true });
 
   wss.on('connection', (socket) => {
     clients.add(socket);

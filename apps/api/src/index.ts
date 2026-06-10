@@ -3,11 +3,12 @@ import { createServer } from 'node:http';
 import { createApp } from './app.js';
 import { initUserCache } from './data/user.store.js';
 import { prisma } from './db/prisma.js';
-import { attachDealsWebSocket } from './ws/dealsWs.js';
+import { createDealsWebSocketServer } from './ws/dealsWs.js';
+import { routeWebSocketUpgrades } from './ws/routeWebSocketUpgrades.js';
 import { dealEventBus } from './events/dealEventBus.js';
 import { wireDealEventBusToWebSocket } from './events/wireDealEventBusToWebSocket.js';
 import { wireDealEventBusToGraphQL } from './graphql/wireDealEventBusToGraphQL.js';
-import { attachGraphQLSubscriptions } from './graphql/attachGraphQLSubscriptions.js';
+import { createGraphQLSubscriptionServer } from './graphql/attachGraphQLSubscriptions.js';
 import { logger } from './observability/logger.js';
 import {
   registerGracefulShutdown,
@@ -20,8 +21,9 @@ const app = createApp();
 const port = Number(process.env.PORT) || 3000;
 const httpServer = createServer(app);
 
-const dealsWss = attachDealsWebSocket(httpServer);
-const graphQLWss = attachGraphQLSubscriptions(httpServer);
+const dealsWss = createDealsWebSocketServer();
+const graphQLWss = createGraphQLSubscriptionServer();
+routeWebSocketUpgrades(httpServer, { '/ws/deals': dealsWss, '/graphql': graphQLWss });
 wireDealEventBusToWebSocket(dealEventBus);
 wireDealEventBusToGraphQL(dealEventBus);
 
