@@ -1,16 +1,20 @@
 import { beforeAll, beforeEach, afterAll } from 'vitest';
 import type express from 'express';
+import type { IntegrationHttpServer } from './integrationHttpServer.js';
 
 export let integrationApp: express.Application;
+export let integrationHttpServer: IntegrationHttpServer;
 
 beforeAll(async () => {
   const { prisma } = await import('../db/prisma.js');
   const { createApp } = await import('../app.js');
   const { initUserCache } = await import('../data/user.store.js');
+  const { startIntegrationHttpServer } = await import('./integrationHttpServer.js');
 
   await prisma.$connect();
   await initUserCache();
   integrationApp = createApp();
+  integrationHttpServer = await startIntegrationHttpServer(integrationApp);
 });
 
 beforeEach(async () => {
@@ -25,5 +29,6 @@ beforeEach(async () => {
 
 afterAll(async () => {
   const { prisma } = await import('../db/prisma.js');
+  await integrationHttpServer.close();
   await prisma.$disconnect();
 });

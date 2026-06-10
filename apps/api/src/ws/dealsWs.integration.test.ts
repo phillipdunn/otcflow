@@ -1,23 +1,9 @@
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { expect, test } from 'vitest';
 import request from 'supertest';
 import WebSocket from 'ws';
 import { DealEventSchema, type DealEvent } from '@otcflow/shared';
-import { integrationApp } from '../test/integration.setup.js';
-import {
-  startIntegrationHttpServer,
-  type IntegrationHttpServer,
-} from '../test/integrationHttpServer.js';
+import { integrationApp, integrationHttpServer } from '../test/integration.setup.js';
 import { testTraderUser, validCreateDealBody } from '../test/fixtures.js';
-
-let server: IntegrationHttpServer | undefined;
-
-beforeAll(async () => {
-  server = await startIntegrationHttpServer(integrationApp);
-});
-
-afterAll(async () => {
-  await server?.close();
-});
 
 function waitForNextMessage(ws: WebSocket, timeoutMs = 5_000): Promise<DealEvent> {
   return new Promise((resolve, reject) => {
@@ -30,7 +16,7 @@ function waitForNextMessage(ws: WebSocket, timeoutMs = 5_000): Promise<DealEvent
 }
 
 test('WebSocket client receives DEAL_CREATED after POST /deals', async () => {
-  const ws = new WebSocket(server.wsDealsUrl);
+  const ws = new WebSocket(integrationHttpServer.wsDealsUrl);
   await new Promise<void>((resolve, reject) => {
     ws.once('open', () => resolve());
     ws.once('error', reject);
@@ -60,7 +46,7 @@ test('WebSocket client receives DEAL_STATUS_CHANGED after PATCH /deals/:id/statu
     .send(validCreateDealBody)
     .expect(201);
 
-  const ws = new WebSocket(server.wsDealsUrl);
+  const ws = new WebSocket(integrationHttpServer.wsDealsUrl);
   await new Promise<void>((resolve, reject) => {
     ws.once('open', () => resolve());
     ws.once('error', reject);
