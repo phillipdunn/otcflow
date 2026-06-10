@@ -12,6 +12,7 @@ export type IntegrationHttpServer = {
   httpServer: Server;
   baseUrl: string;
   wsDealsUrl: string;
+  wsGraphQLUrl: string;
   close: () => Promise<void>;
 };
 
@@ -36,6 +37,7 @@ export async function startIntegrationHttpServer(
     httpServer,
     baseUrl: `http://127.0.0.1:${port}`,
     wsDealsUrl: `ws://127.0.0.1:${port}/ws/deals`,
+    wsGraphQLUrl: `ws://127.0.0.1:${port}/graphql`,
     close: () =>
       new Promise((resolve, reject) => {
         unsubWs();
