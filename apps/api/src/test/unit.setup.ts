@@ -3,7 +3,7 @@ import { beforeEach, vi } from 'vitest';
 /** Silence WebSocket client broadcasts in unit tests. */
 vi.mock('../ws/dealsWs.js', () => ({
   broadcastDealEventToClients: vi.fn(),
-  attachDealsWebSocket: vi.fn(),
+  createDealsWebSocketServer: vi.fn(),
   resetDealEventSequence: vi.fn(),
   getLastDealEventSequence: vi.fn(() => 0),
   getActiveDealWebSocketClients: vi.fn(() => 0),
