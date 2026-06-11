@@ -18,6 +18,16 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+test('GET /health/live returns 200 without database check', async () => {
+  const res = await request(createHealthTestApp()).get('/health/live').expect(200);
+
+  expect(res.body).toMatchObject({
+    status: 'ok',
+    check: 'live',
+    service: 'otcflow-api',
+  });
+});
+
 test('GET /health/ready returns 503 when database check fails', async () => {
   vi.spyOn(dbHealth, 'isDatabaseReady').mockResolvedValue(false);
 

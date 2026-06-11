@@ -1,6 +1,7 @@
 /**
- * Seed Postgres with demo users and a realistic starter book.
- * Run: npm run db:seed -w @otcflow/api
+ * Seed Postgres with demo users and synthetic deals (local / demo environments only).
+ * Do not run in production unless you want throwaway demo data.
+ * Run: npm run db:seed -w @otcflow/api  |  npm run docker:seed (Compose)
  */
 import '../src/loadEnv.js';
 import { randomUUID } from 'node:crypto';

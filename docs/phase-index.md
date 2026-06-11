@@ -2,7 +2,7 @@
 
 **Canonical map of delivery phases** used in README, branch names, and commit messages.
 
-This file is **committed** and safe to link from docs. Optional longer walkthrough notes may live in `docs/phases/` on your machine — that folder is **gitignored** and is not required to use the repo.
+This file is **committed** and safe to link from docs. Longer walkthrough notes live in [docs/phases/](phases/).
 
 | Phase | Topic | Shipped in repo | Where to look |
 | ----- | ----- | --------------- | ------------- |
@@ -43,4 +43,5 @@ Use `phase-N-short-topic` (e.g. `phase-19-architecture`) per [CONTRIBUTING.md](.
 | [architecture.md](architecture.md) | Modular monolith boundaries (Phase 19) |
 | [runbook.md](runbook.md) | Operations runbook (Phase 20) |
 | [platform-mapping.md](platform-mapping.md) | Platform validation mapping (Phase 21) |
+| [deployment-checklist.md](deployment-checklist.md) | Smoke tests, rollback, gaps (§11), prioritized follow-up (§12) |
 | [platform-context.md](platform-context.md) | Desk vocabulary and target shape |

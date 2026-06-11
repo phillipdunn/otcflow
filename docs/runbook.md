@@ -268,7 +268,58 @@ npm run ci:fast   # no DB
 
 ---
 
-## 6. Prevention and hardening ideas
+## 6. WebSocket and proxy deployment
+
+The API handles WebSocket upgrades on the **same HTTP server** as REST (`apps/api/src/index.ts` → `routeWebSocketUpgrades`).
+
+| Path | Client |
+| ---- | ------ |
+| `/ws/deals` | Web blotter (`VITE_WS_URL` or derived from `VITE_API_URL`) |
+| `/graphql` | GraphQL subscriptions (`graphql-ws`) |
+
+### Platform requirements
+
+- Reverse proxy / load balancer must forward **`Upgrade: websocket`** and **`Connection`** headers to the API.
+- Route WS to the same API target as HTTP (or an equivalent path rule on that target).
+- Set **idle timeout** high enough for quiet blotter tabs (60s+; increase if connections drop silently).
+- Use **`wss://`** when the frontend is served over HTTPS.
+- **Sticky sessions** are optional for `/ws/deals` (broadcast is stateless) but can reduce churn during rolling deploys.
+
+### Common misconfigurations
+
+| Config | Problem |
+| ------ | ------- |
+| `VITE_WS_URL=ws://api:3000/...` in Docker | Browser cannot resolve Docker internal DNS — use public host (`localhost` or your domain) |
+| `VITE_*` changed without web rebuild | Stale bundle points at old API — `docker compose up --build web` |
+| `CORS_ORIGIN` ≠ browser origin | REST fails; WS may connect but mutations fail |
+| Proxy idle timeout too low | WS disconnects periodically; client reconnects (backoff in hook) |
+| TLS termination strips upgrade | Handshake fails — check proxy WebSocket support |
+
+### Verify after deploy
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://<api-host>/health/live
+# Browser devtools → Network → WS → /ws/deals → messages after POST /deals
+curl -s http://<api-host>/metrics | jq '.activeDealWebSocketClients'
+```
+
+Full smoke checklist: [deployment-checklist.md](deployment-checklist.md).
+
+---
+
+## 7. Rollback
+
+| Component | Action |
+| --------- | ------ |
+| **API** | Redeploy previous container image / task revision; confirm `/health/ready` → 200 |
+| **Web** | Redeploy prior static build; confirm baked `VITE_API_URL` matches live API |
+| **Database** | **Do not** blindly revert schema after destructive migrations — restore from backup or forward-fix |
+
+API rollback is safe when the DB schema is unchanged or backward compatible with the older binary. After rollback, run smoke tests in [deployment-checklist.md §8](deployment-checklist.md). WebSocket clients will reconnect automatically; a page refresh is fine.
+
+---
+
+## 8. Prevention and hardening ideas
 
 Not all are implemented today; they map naturally from the modular monolith layout.
 
@@ -292,7 +343,9 @@ Not all are implemented today; they map naturally from the modular monolith layo
 | Doc | Contents |
 | --- | -------- |
 | [architecture.md](architecture.md) | Event flow, failure modes, service boundaries |
+| [deployment-checklist.md](deployment-checklist.md) | Pre/post-deploy smoke tests and rollback |
 | [phase-index.md](phase-index.md) | Delivery phases |
 | [README.md](../README.md) | Setup, endpoints, Docker |
 | [CONTRIBUTING.md](../CONTRIBUTING.md) | CI and branch workflow |
 | [apps/api/DATABASE.md](../apps/api/DATABASE.md) | Prisma and local DB |
+| [platform-mapping.md](platform-mapping.md) | Platform validation mapping |

@@ -91,20 +91,39 @@ npm run db:generate -w @otcflow/api
 
 ## 4. Apply schema
 
+### Local development
+
 ```bash
 npm run db:migrate -w @otcflow/api
 ```
 
-Creates tables: `User`, `Deal`, `AuditEvent`.
+Uses `prisma migrate dev` — interactive; creates migration history when you change `schema.prisma`.
 
-## 5. Seed realistic starter data
+### CI, Docker, and production
+
+```bash
+npm run db:migrate:deploy -w @otcflow/api
+```
+
+Uses `prisma migrate deploy` — applies **committed** migrations only. No prompts. This is what the API Docker entrypoint and GitHub Actions CI run.
+
+**Migration order** (under `prisma/migrations/`, applied by timestamp):
+
+1. `20250515120000_init_postgres` — creates `User`, `Deal`, `AuditEvent`
+
+Check status: `npx prisma migrate status` from `apps/api`.
+
+## 5. Seed demo data (non-production only)
 
 ```bash
 npm run db:seed -w @otcflow/api
 ```
 
+**Demo / local use only.** Do not run seed in production unless you intentionally want synthetic data in a throwaway environment.
+
 - Upserts demo **users** (mock desk + Market Simulator).
 - Inserts **100** generated deals + `DEAL_CREATED` audit rows (skipped if deals already exist).
+- **Not** run automatically when the API container starts — run manually: `npm run docker:seed` in Compose.
 
 ## 6. Run the API
 
@@ -119,9 +138,10 @@ Expect: `PostgreSQL connected (Prisma)`.
 | Command | Purpose |
 | ------- | ------- |
 | `npm run db:generate -w @otcflow/api` | Regenerate Prisma client after schema change |
-| `npm run db:migrate -w @otcflow/api` | Apply migrations (dev) |
+| `npm run db:migrate -w @otcflow/api` | Apply migrations (dev — `migrate dev`) |
+| `npm run db:migrate:deploy -w @otcflow/api` | Apply migrations (CI/prod — `migrate deploy`) |
 | `npm run db:push -w @otcflow/api` | Push schema without migration (prototyping only) |
-| `npm run db:seed -w @otcflow/api` | Run seed script |
+| `npm run db:seed -w @otcflow/api` | Run seed script (demo data only) |
 | `npx prisma studio -w @otcflow/api` | Browse data (optional) |
 
 ## Tables

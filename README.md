@@ -2,7 +2,7 @@
 
 Event-driven OTC trading workflow platform — **npm workspaces** monorepo (one lockfile, shared TypeScript packages).
 
-This README describes **what is in the repo today**. For desk vocabulary and target shape, see [docs/platform-context.md](docs/platform-context.md). For **canonical phase numbers** (delivery phases 1–21), see [docs/phase-index.md](docs/phase-index.md). For **logical module boundaries** in the API, see [docs/architecture.md](docs/architecture.md). For **incident response and debugging**, see [docs/runbook.md](docs/runbook.md). For **platform dry-run mapping** (deploy, observe, operate), see [docs/platform-mapping.md](docs/platform-mapping.md).
+This README describes **what is in the repo today**. For desk vocabulary and target shape, see [docs/platform-context.md](docs/platform-context.md). For **canonical phase numbers** (delivery phases 1–21), see [docs/phase-index.md](docs/phase-index.md). For **logical module boundaries** in the API, see [docs/architecture.md](docs/architecture.md). For **incident response and debugging**, see [docs/runbook.md](docs/runbook.md). For **platform dry-run mapping** (deploy, observe, operate), see [docs/platform-mapping.md](docs/platform-mapping.md). For **pre/post-deploy smoke tests and rollback**, see [docs/deployment-checklist.md](docs/deployment-checklist.md).
 
 ## What exists right now
 
@@ -26,6 +26,8 @@ This README describes **what is in the repo today**. For desk vocabulary and tar
 | `docs/architecture.md` | Modular monolith layout, logical service boundaries, event flow, and extraction path. See [Architecture](docs/architecture.md). |
 | `docs/runbook.md` | Operations runbook — health, metrics, logs, incidents, local debugging. See [Operations runbook](docs/runbook.md). |
 | `docs/platform-mapping.md` | Platform validation mapping — dry-run questions, deploy flow, readiness checklist. See [Platform mapping](docs/platform-mapping.md). |
+| `docs/deployment-checklist.md` | Deployment smoke tests, env vars, WebSocket/proxy notes, rollback. See [Deployment checklist](docs/deployment-checklist.md). |
+| `docs/phases/` | Per-phase walkthrough notes (phases 1–21). |
 
 ### Web blotter (`apps/web/src/blotter/`)
 
@@ -86,7 +88,7 @@ Items **1–9** are structural choices (monorepo, tooling, patterns). Items **10
 
 12. **Docker Compose (Phase 10)** — `docker compose up` runs nginx-served web, API, and Postgres with migrations on API start. See [Docker](#docker-production-like-local-stack).
 
-**In the repo but not a live cloud deploy:** PostgreSQL, Prisma, Docker Compose, GraphQL, and the Phase 16 Terraform skeleton are all present — run and develop locally as documented below. **Not deployed from this repo:** applying Terraform to a real AWS account; production auth/RBAC. The GraphQL API exists alongside REST; the blotter uses REST + TanStack Query.
+**Implemented locally:** PostgreSQL, Prisma, Docker Compose, GraphQL, health/metrics, CI. **Deployable as a demo / platform validation stack** — not production trading. **Not deployed from this repo:** applying Terraform to a cloud account. The GraphQL API exists alongside REST; the blotter uses REST + TanStack Query. Smoke tests: [docs/deployment-checklist.md](docs/deployment-checklist.md). **Gaps and prioritized follow-up work:** [docs/deployment-checklist.md §10–12](docs/deployment-checklist.md#10-deployment-readiness-summary).
 
 ## Prerequisites
 
@@ -100,7 +102,39 @@ Items **1–9** are structural choices (monorepo, tooling, patterns). Items **10
 
 - Docker Engine 24+ with Compose V2 (`docker compose`)
 
-## Setup
+## Fresh clone — native dev
+
+```bash
+git clone <repo-url> otcflow && cd otcflow
+npm ci
+cp apps/api/.env.example apps/api/.env
+# optional: cp apps/web/.env.example apps/web/.env
+createdb otcflow                    # or use Docker Postgres on port 5433
+npm run db:generate
+npm run db:migrate                  # dev: prisma migrate dev
+npm run db:seed                     # demo data only — optional
+npm run dev:api                     # terminal 1
+npm run dev:web                     # terminal 2 → http://localhost:5173
+```
+
+Verify: `curl -s http://localhost:3000/health/ready` → 200.
+
+Details: [apps/api/DATABASE.md](apps/api/DATABASE.md). Env templates: `apps/api/.env.example`, `apps/web/.env.example`.
+
+## Fresh clone — Docker Compose
+
+```bash
+git clone <repo-url> otcflow && cd otcflow
+cp docker.env.example .env          # optional — defaults work for localhost
+npm run docker:up                   # build + start postgres, api, web
+npm run docker:seed                 # first time only — demo data
+```
+
+Open `http://localhost:5173`. Health: `curl -s http://localhost:3000/health/ready`.
+
+Migrations run automatically on API container start (`prisma migrate deploy`). Full checklist: [docs/deployment-checklist.md](docs/deployment-checklist.md).
+
+## Setup (existing checkout)
 
 ```bash
 npm install
@@ -115,7 +149,7 @@ cp apps/api/.env.example apps/api/.env
 # create DB: createdb otcflow
 npm run db:generate
 npm run db:migrate
-npm run db:seed
+npm run db:seed                     # demo only
 ```
 
 Details: [apps/api/DATABASE.md](apps/api/DATABASE.md).
@@ -198,7 +232,7 @@ npm run dev:web
 
 Run **`npm run dev:api`** in another terminal so `GET /deals` and **`ws://localhost:3000/ws/deals`** succeed. Open the URL Vite prints (usually `http://localhost:5173`). The blotter loads **live deals**, keeps filters/sort/selection/detail, **New deal**, and **status** updates; other tabs or clients updating deals appear in near real time via the socket.
 
-Optional: set **`VITE_API_URL`** and optionally **`VITE_WS_URL`** in **`apps/web/.env`** if the API is not at `http://localhost:3000`. If `VITE_WS_URL` is omitted, the WebSocket URL is derived from the API base (**`ws:`** / **`wss:`** + path **`/ws/deals`**).
+Optional: copy **`apps/web/.env.example`** → **`apps/web/.env`** and set **`VITE_API_URL`** / **`VITE_WS_URL`** if the API is not at `http://localhost:3000`. If `VITE_WS_URL` is omitted, the WebSocket URL is derived from the API base (**`ws:`** / **`wss:`** + path **`/ws/deals`**). In Docker, these are **build-time** args — rebuild web after changing them.
 
 **API (Phase 4 — REST + deal events WebSocket)**
 
@@ -278,7 +312,7 @@ Create a deal (`product` must be a valid `ProductType` from shared, e.g. `IRS`; 
 ```bash
 curl -s -X POST http://localhost:3000/deals \
   -H 'Content-Type: application/json' \
-  -d '{"product":"IRS","counterparty":"Goldman Sachs","notional":1000000,"currency":"USD","price":3.5,"trader":"A. Trader","broker":"B. Broker"}'
+  -d '{"product":"IRS","counterparty":"Demo Counterparty","notional":1000000,"currency":"USD","price":3.5,"trader":"A. Trader","broker":"B. Broker"}'
 ```
 
 Update status (replace `<id>` with a real id from `GET /deals` or the POST response):
@@ -344,7 +378,11 @@ Copy **`docker.env.example`** → **`.env`** at the repo root. Key vars:
 | `CORS_ORIGIN` | `http://localhost:5173` | API CORS — must match where you open the UI |
 | `POSTGRES_*` | `postgres` / `otcflow` | DB credentials (api `DATABASE_URL` is derived) |
 
-Migrations run automatically when the **api** container starts. Use **`npm run docker:migrate`** to run them manually; **`npm run docker:seed`** for sample data (skips if deals already exist).
+Migrations run automatically when the **api** container starts (`prisma migrate deploy` — not `migrate dev`). Use **`npm run docker:migrate`** to run them manually; **`npm run docker:seed`** for demo data only (skips if deals already exist; not run on container start).
+
+### WebSocket deployment
+
+The browser connects directly to the API for **`/ws/deals`** (not through the nginx web container). Your load balancer or proxy must support **WebSocket upgrades** on the API route. Set **`VITE_WS_URL`** to the public `ws://` or `wss://` URL; align **`CORS_ORIGIN`** with the frontend origin. Troubleshooting: [docs/runbook.md](docs/runbook.md) §6, [docs/deployment-checklist.md](docs/deployment-checklist.md) §5.
 
 ## Infrastructure skeleton (Phase 16)
 
@@ -381,8 +419,9 @@ Builds `@otcflow/shared`, then `@otcflow/web` (`tsc -b` + `vite build` → `apps
 | ---------------------- | -------------------- |
 | `npm run dev:web`      | Vite dev server      |
 | `npm run dev:api`      | API with `tsx watch` |
-| `npm run db:migrate`   | Apply Prisma migrations |
-| `npm run db:seed`      | Seed users + sample deals |
+| `npm run db:migrate`   | Apply Prisma migrations (dev — `migrate dev`) |
+| `npm run db:migrate:deploy` | Apply migrations (CI/prod — `migrate deploy`) |
+| `npm run db:seed`      | Seed demo users + deals (non-production) |
 | `npm run docker:up`    | Docker Compose: build + start full stack |
 | `npm run docker:up:detached` | Docker Compose in background |
 | `npm run docker:down`  | Stop Docker stack |
@@ -401,4 +440,4 @@ Builds `@otcflow/shared`, then `@otcflow/web` (`tsc -b` + `vite build` → `apps
 | `npm run format`       | Prettier write       |
 | `npm run format:check` | Prettier check       |
 
-**Env files:** native web → `apps/web/.env` (`VITE_*`). Docker → root `.env` from `docker.env.example`.
+**Env files:** `apps/api/.env.example`, `apps/web/.env.example` (native); root `.env` from `docker.env.example` (Compose). Never commit `.env` files with secrets.

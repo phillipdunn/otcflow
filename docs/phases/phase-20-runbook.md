@@ -41,7 +41,7 @@
 
 - [ ] `curl /health/ready` documented matches actual 503 behaviour
 - [ ] Each scenario has symptoms + checks + remediation
-- [ ] No employer/client names in runbook text
+- [ ] No real company or organization names in runbook text
 
 ---
 

@@ -2,7 +2,7 @@
 
 How OTCFlow maps to a **generic modern application platform** and how it can serve as a **dry-run / reference application** for onboarding, deployment, observability, and operational readiness exercises.
 
-Related: [architecture.md](architecture.md) (internal boundaries), [runbook.md](runbook.md) (incidents), [infra/terraform/README.md](../infra/terraform/README.md) (cloud skeleton).
+Related: [architecture.md](architecture.md) (internal boundaries), [runbook.md](runbook.md) (incidents), [deployment-checklist.md](deployment-checklist.md) (smoke tests and rollback), [infra/terraform/README.md](../infra/terraform/README.md) (cloud skeleton).
 
 ---
 
@@ -217,6 +217,8 @@ Read these before treating OTCFlow as production-ready infrastructure proof:
 
 OTCFlow validates **platform mechanics**, not **business or regulatory readiness**.
 
+For a **readiness matrix** (demo vs production), **grouped limitations**, and a **prioritized backlog** (P0–P3), see [deployment-checklist.md §10–12](deployment-checklist.md).
+
 ---
 
 ## 7. Recommended next validation exercises
@@ -248,4 +250,5 @@ Document outcomes in your platform team's run log — pass/fail per checklist ro
 | [runbook.md](runbook.md) | Incident response |
 | [phase-index.md](phase-index.md) | Build phases 1–21 |
 | [README.md](../README.md) | Local commands and layout |
+| [deployment-checklist.md](deployment-checklist.md) | Smoke tests, gaps, prioritized follow-up |
 | [CONTRIBUTING.md](../CONTRIBUTING.md) | CI and PR workflow |
